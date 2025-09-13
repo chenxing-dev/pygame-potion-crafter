@@ -19,9 +19,8 @@ templates = {
         "#.................#####..........#",
         "#.................#   #..........#",
         "#.................#   #..........#",
-        "#.................#####..........#",
-        "#................................#",
-        "##################################",
+        "#.................#   #..........#",
+        "###################   ############",
     ]
 }
 
@@ -30,7 +29,7 @@ class GameMap:
     def __init__(self, level=1):
         self.width = MAP_WIDTH
         self.height = MAP_HEIGHT
-        self.tiles = np.full((self.width, self.height), fill_value=FLOOR, dtype=str)
+        self.tiles = np.full((self.width, self.height), fill_value=" ", dtype=str)
         self.player_start = (3, 3)  # default
         self.level = level
         self.entities = []  # Store entities here
@@ -43,7 +42,7 @@ class GameMap:
         string_array = templates.get(self.level, templates[1])
         self.height = len(string_array)
         self.width = len(string_array[0])
-        self.tiles = np.full((self.width, self.height), fill_value=FLOOR, dtype="str")
+        self.tiles = np.full((self.width, self.height), fill_value=" ", dtype="str")
 
         self.entities = []  # Reset entities
         self.player_start = (3, 3)  # default
@@ -53,7 +52,7 @@ class GameMap:
             for x, char in enumerate(row):
                 if x < self.width and y < self.height:
                     # Set tile type
-                    if char in (WALL, FLOOR):
+                    if char in (WALL, FLOOR, " "):
                         self.tiles[x, y] = char
                     else:
                         self.tiles[x, y] = FLOOR  # Entities on floor tiles
