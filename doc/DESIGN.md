@@ -1,4 +1,3 @@
-- [ ] The message log UI.
 - [ ] interacting with objects.
 - [ ] The data structure for crafting recipes.
 
@@ -39,3 +38,33 @@
 7. 地图
     - 不需要多层或复杂地图
     - 专注于把核心区域（工作区、培育室、储藏室）做细致
+
+# Creating Distinctive Interactions
+
+1. Gentle, non-violent interactions:
+```py
+actions = {
+    "Comfort": lambda obj, game: "The anxious broom calms down and begins sweeping properly.",
+    "Prune": lambda obj, game: "You carefully trim the overgrown plant, encouraging healthy growth.",
+    "Organize": lambda obj, game: "You sort the scattered components into neat piles."
+}
+```
+2. Progress through crafting and repair:
+
+```py
+def fix_pipe_callback(obj, game):
+    if game.player.has_tool("Wrench"):
+        game.world_state["fixed_pipes"] += 1
+        return "You tighten the fittings, stopping the leak."
+    return "You need a wrench to fix this properly."
+```
+3. Atmospheric interactions:
+```py
+def listen_callback(obj, game):
+   sounds = [
+        "The gentle hum of magic permeates the air.",
+        "Somewhere, water drips rhythmically.",
+        "You hear the faint rustling of plants growing."
+   ]
+   return random.choice(sounds)
+```

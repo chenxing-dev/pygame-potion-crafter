@@ -1,3 +1,4 @@
+from typing import Callable
 from constants import PLAYER, PLAYER_NAME
 import colors as COLOR
 
@@ -15,8 +16,6 @@ class Entity:
 class Actor(Entity):
     def __init__(self, x, y, char, color, name):
         super().__init__(x, y, char, color, name, blocks=True)
-        self.name = name
-        self.color = color
         self.alive = True
 
     def greet(self, target):
@@ -27,7 +26,7 @@ class Actor(Entity):
 class Player(Actor):
     def __init__(self, x, y):
         super().__init__(x, y, PLAYER, COLOR.DARK_RED, PLAYER_NAME)
-        self.inventory = (
+        self.inventory: list[Item] = (
             []
         )  # ("Silver Leaf", 3), ("Lemon Fruit", 2), ("Simple Glue", 1)
         self.xp = 0
@@ -38,13 +37,13 @@ class Player(Actor):
     def get_inventory(self):
         return [item_stack.name for item_stack in self.inventory]
 
-    def move(self, dx, dy, game_map):
+    def move(self, dx: int, dy: int, game_map) -> dict[str, bool | str | None]:
         """Move the player if the target position is not blocked"""
         new_x, new_y = self.x + dx, self.y + dy
 
         # Check for wall collision
         if game_map.is_blocked(new_x, new_y):
-            return None
+            return {"moved": False}
 
         # Check for entity interaction at new position
         target = None
@@ -55,31 +54,21 @@ class Player(Actor):
 
         if target:
             if isinstance(target, Door):
-                return self.use_door(target, game_map.entities)
+                return {"moved": False, "message": target.use(game_map.entities)}
             if isinstance(target, Actor):
-                return self.greet(target)
+                return {"moved": False, "message": self.greet(target)}
             if isinstance(target, Item):
                 # Move player first
                 self.x, self.y = new_x, new_y
-                return self.pick_up(target, game_map.entities)
-        else:
-            self.x, self.y = new_x, new_y
-            return True
+                return {"moved": True, "message": self.pick_up(target, game_map.entities)}
+            return {"moved": False}
+        self.x, self.y = new_x, new_y
+        return {"moved": True}
 
     def pick_up(self, item, entities):
         self.inventory.append(item)
         entities.remove(item)
         return f"Picked up {item.name}"
-
-    def use_item(self, item):
-        if isinstance(item, Tool):
-            self.equipped_tool = item
-            return f"Equipped {item.name}"
-        return None
-
-    def use_door(self, door, entities):
-        entities.remove(door)
-        return f"{self.name} opens the door."
 
 
 class Item(Entity):
@@ -94,3 +83,22 @@ class Tool(Item):
 class Door(Entity):
     def __init__(self, x, y, char, color, name):
         super().__init__(x, y, char, color, name)
+
+    def use(self, entities):
+        entities.remove(self)
+        return f"{self.name} opens the door."
+
+
+class Activator(Entity):
+    def __init__(self, x, y, char, color, name, actions: dict[str, Callable]):
+        super().__init__(x, y, char, color, name)
+        self.actions = actions
+
+    def get_actions(self):
+        return list(self.actions.keys())
+
+    def activate(self, action_name: str, game):
+        action = self.actions.get(action_name)
+        if action:
+            return action(game)
+        return None

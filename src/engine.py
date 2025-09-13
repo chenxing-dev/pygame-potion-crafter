@@ -26,7 +26,7 @@ from constants import (
     OUTER_PADDING,
     COLORED_WORDS,
 )
-from entities import Actor
+from entities import Actor, Player
 import colors as COLOR
 
 
@@ -107,7 +107,7 @@ class MessageLog:
 
         # Keep message log manageable
         if len(self.messages) > self.max_lines:
-            self.messages = self.messages[-self.max_lines :]
+            self.messages = self.messages[-self.max_lines:]
 
     def render(self, container):
         """Render messages with colored keywords"""
@@ -139,42 +139,46 @@ class Engine:
         self.clock = pygame.time.Clock()
 
         # Create fonts
-        self.font_ui = pygame.font.Font("assets/fonts/FT88-Gothique.ttf", FONT_SIZE)
-        self.font_map = pygame.font.Font("assets/fonts/FT88-Gothique.ttf", FONT_SIZE)
+        self.font = pygame.font.Font(
+            "assets/fonts/FT88-Gothique.ttf", FONT_SIZE)
 
         # Calculate the size of a character
-        width, height = self.font_map.size(WALL + FLOOR)
-        self.char_width, self.char_height = width / 2, height
+        width, height = self.font.size(WALL + FLOOR)
+        self.char_size = (width / 2, height)
 
         self.message_log = MessageLog(
-            font=self.font_ui, char_size=(self.char_width, self.char_height)
+            font=self.font, char_size=self.char_size
         )
 
         # Create container surface
-        container_width = GRID_WIDTH * self.char_width
-        container_height = GRID_HEIGHT * self.char_height
-        self.container = pygame.Surface(
+        container_width = GRID_WIDTH * self.char_size[0]
+        container_height = GRID_HEIGHT * self.char_size[1]
+        container = pygame.Surface(
             (container_width, container_height), pygame.SRCALPHA
         )
-        self.padding_container = pygame.Surface(
+        padding_container = pygame.Surface(
             (SCREEN_WIDTH - OUTER_PADDING * 2, SCREEN_HEIGHT - OUTER_PADDING * 2),
             pygame.SRCALPHA,
         )
+        self.surfaces = {
+            "container": container,
+            "padding_container": padding_container
+        }
 
-        self.game_state = "playing"
         self.day = 4
 
     def add_message(self, message, color=COLOR.INK):
         self.message_log.add_message(message, color)
 
     def render_colored_text(self, surface, text, position, default_color=COLOR.INK):
-        self.message_log.render_colored_text(surface, text, position, default_color)
+        self.message_log.render_colored_text(
+            surface, text, position, default_color)
 
     def render(self, game_map, player):
         """Render the game"""
 
         # Clear container
-        self.container.fill(COLOR.PARCHMENT)
+        self.surfaces["container"].fill(COLOR.PARCHMENT)
 
         self.render_header()
 
@@ -184,16 +188,19 @@ class Engine:
         self.render_status_panel(player)
 
         # Draw message log
-        self.message_log.render(self.container)
+        self.message_log.render(self.surfaces["container"])
 
-        # Draw action menu
-        self.render_action_menu()
+        # Render action menu based on context
+        actions = self.get_available_actions()
+        self.render_action_menu(actions)
 
         # Draw container to screen with padding
-        self.padding_container.fill(COLOR.PARCHMENT)
-        self.padding_container.blit(self.container, (INNER_PADDING, INNER_PADDING))
+        self.surfaces["padding_container"].fill(COLOR.PARCHMENT)
+        self.surfaces["padding_container"].blit(
+            self.surfaces["container"], (INNER_PADDING, INNER_PADDING))
         self.screen.fill(COLOR.INK)
-        self.screen.blit(self.padding_container, (OUTER_PADDING, OUTER_PADDING))
+        self.screen.blit(self.surfaces["padding_container"],
+                         (OUTER_PADDING, OUTER_PADDING))
 
         pygame.display.flip()
 
@@ -202,19 +209,21 @@ class Engine:
         # Draw container
         header_x, header_y = 0, 0
         header_bg = pygame.Surface(
-            (HEADER_WIDTH * self.char_width, HEADER_HEIGHT * self.char_height),
+            (HEADER_WIDTH * self.char_size[0],
+             HEADER_HEIGHT * self.char_size[1]),
             pygame.SRCALPHA,
         )
         # Display game title and current day
-        self.render_colored_text(header_bg, f"{GAME_TITLE} - Day {self.day}", (0, 0))
+        self.render_colored_text(
+            header_bg, f"{GAME_TITLE} - Day {self.day}", (0, 0))
 
-        self.container.blit(header_bg, (header_x, header_y))
+        self.surfaces["container"].blit(header_bg, (header_x, header_y))
 
     def render_map(self, game_map, player):
         """Render the game map and entities"""
-        map_x, map_y = 0, self.char_height
+        map_x, map_y = 0, self.char_size[1]
         map_bg = pygame.Surface(
-            (MAP_WIDTH * self.char_width, MAP_HEIGHT * self.char_height),
+            (MAP_WIDTH * self.char_size[0], MAP_HEIGHT * self.char_size[1]),
             pygame.SRCALPHA,
         )
 
@@ -226,10 +235,10 @@ class Engine:
                 color = COLOR.LIGHT_TAUPE if char == FLOOR else COLOR.INK
 
                 # Render the tile character
-                text_surface = self.font_map.render(char, True, color)
+                text_surface = self.font.render(char, True, color)
                 map_bg.blit(
                     text_surface,
-                    (x * self.char_width, y * self.char_height),
+                    (x * self.char_size[0], y * self.char_size[1]),
                 )
 
         # Draw entities
@@ -244,12 +253,13 @@ class Engine:
         for entity in game_map.entities:
             if not entity.blocks and entity != player:
                 if (entity.x, entity.y) not in blocking_positions:
-                    text = self.font_map.render(entity.char, True, entity.color)
+                    text = self.font.render(
+                        entity.char, True, entity.color)
                     map_bg.blit(
                         text,
                         (
-                            entity.x * self.char_width,
-                            entity.y * self.char_height,
+                            entity.x * self.char_size[0],
+                            entity.y * self.char_size[1],
                         ),
                     )
 
@@ -260,34 +270,34 @@ class Engine:
                 # Draw creatures
                 color = entity.color
 
-                text = self.font_map.render(entity.char, True, color)
+                text = self.font.render(entity.char, True, color)
                 map_bg.blit(
                     text,
                     (
-                        entity.x * self.char_width,
-                        entity.y * self.char_height,
+                        entity.x * self.char_size[0],
+                        entity.y * self.char_size[1],
                     ),
                 )
 
         # Third: Draw player (always on top)
         if player.alive:
-            player_text = self.font_map.render(PLAYER, True, player.color)
+            player_text = self.font.render(PLAYER, True, player.color)
             map_bg.blit(
                 player_text,
                 (
-                    player.x * self.char_width,
-                    player.y * self.char_height,
+                    player.x * self.char_size[0],
+                    player.y * self.char_size[1],
                 ),
             )
 
-        self.container.blit(map_bg, (map_x, map_y))
+        self.surfaces["container"].blit(map_bg, (map_x, map_y))
 
     def render_status_panel(self, player):
         """Render the status panel"""
         # Draw UI panel background
-        ui_x, ui_y = MAP_WIDTH * self.char_width, self.char_height
+        ui_x, ui_y = MAP_WIDTH * self.char_size[0], self.char_size[1]
         ui_bg = pygame.Surface(
-            (UI_WIDTH * self.char_width, UI_HEIGHT * self.char_height),
+            (UI_WIDTH * self.char_size[0], UI_HEIGHT * self.char_size[1]),
             pygame.SRCALPHA,
         )
 
@@ -310,31 +320,35 @@ class Engine:
                 self.render_colored_text(
                     ui_bg,
                     stat[0],
-                    (self.char_width, status_y),
+                    (self.char_size[0], status_y),
                     stat[1],
                 )
             else:
-                self.render_colored_text(ui_bg, stat, (self.char_width, status_y))
-            status_y += self.char_height
+                self.render_colored_text(
+                    ui_bg, stat, (self.char_size[0], status_y))
+            status_y += self.char_size[1]
 
-        self.container.blit(ui_bg, (ui_x, ui_y))
+        self.surfaces["container"].blit(ui_bg, (ui_x, ui_y))
 
-    def render_action_menu(self):
+    def get_available_actions(self):
+        """Determine available actions based on context"""
+        # For simplicity, return a static list for now
+        return ["Examine", "Harvest", "Look", "Inventory", "Map"]
+
+    def render_action_menu(self, actions):
         """Render the action menu"""
-        # 定义动作列表
-        actions_list = ["Examine", "Harvest", "Look", "Inventory", "Map"]
         separator = "|"
 
         # 绘制动作菜单
-        menu_x, menu_y = 0, (GRID_HEIGHT - MENU_HEIGHT) * self.char_height
+        menu_x, menu_y = 0, (GRID_HEIGHT - MENU_HEIGHT) * self.char_size[1]
         current_x = 0
 
         menu_bg = pygame.Surface(
-            (MENU_WIDTH * self.char_width, MENU_HEIGHT * self.char_height),
+            (MENU_WIDTH * self.char_size[0], MENU_HEIGHT * self.char_size[1]),
             pygame.SRCALPHA,
         )
 
-        for i, action in enumerate(actions_list):
+        for i, action in enumerate(actions):
             # 提取首字母和剩余部分
             first_letter = f"({action[0]})"
             rest_of_text = action[1:]
@@ -343,90 +357,85 @@ class Engine:
             self.render_colored_text(
                 menu_bg, first_letter, (current_x, 0), COLOR.SADDLE_BROWN
             )
-            current_x += len(first_letter) * self.char_width
+            current_x += len(first_letter) * self.char_size[0]
 
             # 绘制剩余文本（浅灰褐色）
             self.render_colored_text(
                 menu_bg, rest_of_text, (current_x, 0), COLOR.LIGHT_TAUPE
             )
-            current_x += (len(rest_of_text) + 1) * self.char_width
+            current_x += (len(rest_of_text) + 1) * self.char_size[0]
 
             # 如果不是最后一个动作，添加分隔符
-            if i < len(actions_list) - 1:
+            if i < len(actions) - 1:
                 self.render_colored_text(
                     menu_bg, separator, (current_x, 0), COLOR.LIGHT_TAUPE
                 )
-            current_x += (len(separator) + 1) * self.char_width
+            current_x += (len(separator) + 1) * self.char_size[0]
 
-        self.container.blit(menu_bg, (menu_x, menu_y))
+        self.surfaces["container"].blit(menu_bg, (menu_x, menu_y))
 
-    def handle_events(self, player, game_map):
+    def handle_events(self, player: Player, game_map):
         """Handle user input events"""
+        keep_running = True
+
+        # Map keys to movement deltas
+        move_keys = {
+            pygame.K_UP: (0, -1),
+            pygame.K_w: (0, -1),
+            pygame.K_DOWN: (0, 1),
+            pygame.K_s: (0, 1),
+            pygame.K_LEFT: (-1, 0),
+            pygame.K_a: (-1, 0),
+            pygame.K_RIGHT: (1, 0),
+            pygame.K_d: (1, 0),
+        }
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return False
+                keep_running = False
+                break
 
-            if event.type == pygame.KEYDOWN:
-                # Always allow quitting
-                if event.key == pygame.K_ESCAPE:
-                    return False
+            if event.type != pygame.KEYDOWN:
+                continue
 
-                # Ignore other input if player is dead
-                if not player.alive:
-                    return True
+            # Global quit
+            if event.key == pygame.K_ESCAPE:
+                keep_running = False
+                break
 
-                turn_passed = False
-                result = ""
+            turn_passed = False
 
-                # Movement controls
-                if event.key == pygame.K_UP or event.key == pygame.K_w:
-                    result = player.move(0, -1, game_map)
-                elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                    result = player.move(0, 1, game_map)
-                elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
-                    result = player.move(-1, 0, game_map)
-                elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
-                    result = player.move(1, 0, game_map)
-                elif event.key == pygame.K_i:
-                    # Opening inventory does not pass a turn
-                    self.show_inventory(player)
-                    return True
-                else:
-                    return True
-
-                if result is not None:  # Either moved or interacted
+            # Movement keys
+            if event.key in move_keys:
+                dx, dy = move_keys[event.key]
+                result = player.move(dx, dy, game_map)
+                if result:  # Either moved or interacted
                     turn_passed = True
-                    # Only add message if result is a tuple or a string
-                    if isinstance(result, Tuple):
-                        self.add_message(*result)
-                    elif isinstance(result, str):
-                        self.add_message(result)
+                    message = result.get("message")
+                    if isinstance(message, Tuple):
+                        self.add_message(*message)
+                    elif isinstance(message, str):
+                        self.add_message(message)
 
-                if turn_passed and player.alive:
-                    game_map.compute_fov(player.x, player.y)
-                    # Process world's turn after player moves
-                    self.handle_world_turns(player, game_map)
+            elif event.key == pygame.K_e:
+                # Examine action
+                self.add_message("You examine your surroundings.")
 
-                # Remove dead entities
-                game_map.entities[:] = [
-                    e for e in game_map.entities if getattr(e, "alive", True)
-                ]
+            elif event.key == pygame.K_i:
+                # Opening inventory does not pass a turn
+                self.show_inventory(player)
+                continue
 
-                # Check if player died
-                if not player.alive:
-                    self.add_message("You have died!", COLOR.DARK_RED)
-                    self.add_message("Game Over! Press ESC to quit.")
+            # After handling a player action that passes a turn,
+            # advance the world state
+            if turn_passed and player.alive:
+                game_map.compute_fov(player.x, player.y)
+                self.handle_world_turns(player, game_map)
 
-                # Handle stairs
-                if result and isinstance(result, str) and "Descending" in result:
-                    # Generate next level
-                    game_map.level = player.current_floor
-                    game_map.generate_map()
-                    player.x, player.y = game_map.player_start
+            # Process only the first handled keydown event
+            break
 
-                return True
-
-        return True
+        return keep_running
 
     def show_inventory(self, player):
         """Display inventory and allow item usage"""
@@ -459,10 +468,6 @@ class Engine:
                         # Greets player
                         result = entity.greet(player)
                         messages.append(result)
-
-                        # Check if player died
-                        if not player.alive:
-                            self.game_state = "dead"
                     else:
                         # Move toward player using pathfinding
                         new_x, new_y = game_map.find_path(
