@@ -27,7 +27,6 @@ def main():
     engine.add_message(
         "> A faint glow catches your eye from a patch of moss in the corner. "
     )
-    engine.add_message("(E)xamine (H)arvest (L)ook (I)nventory (M)ap")
 
     # Main game loop
     running = True

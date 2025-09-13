@@ -15,8 +15,9 @@ class Entity:
 class Actor(Entity):
     def __init__(self, x, y, char, color, name):
         super().__init__(x, y, char, color, name, blocks=True)
+        self.name = name
+        self.color = color
         self.alive = True
-        self.armor = 0
 
     def greet(self, target):
         """Greet another actor and return result message"""
@@ -25,7 +26,7 @@ class Actor(Entity):
 
 class Player(Actor):
     def __init__(self, x, y):
-        super().__init__(x, y, PLAYER, COLOR.BLUE, PLAYER_NAME)
+        super().__init__(x, y, PLAYER, COLOR.DARK_RED, PLAYER_NAME)
         self.inventory = (
             []
         )  # ("Silver Leaf", 3), ("Lemon Fruit", 2), ("Simple Glue", 1)
@@ -53,9 +54,11 @@ class Player(Actor):
                 break
 
         if target:
+            if isinstance(target, Door):
+                return self.use_door(target, game_map.entities)
             if isinstance(target, Actor):
                 return self.greet(target)
-            elif isinstance(target, Item):
+            if isinstance(target, Item):
                 # Move player first
                 self.x, self.y = new_x, new_y
                 return self.pick_up(target, game_map.entities)
@@ -74,13 +77,20 @@ class Player(Actor):
             return f"Equipped {item.name}"
         return None
 
+    def use_door(self, door, entities):
+        entities.remove(door)
+        return f"{self.name} opens the door."
+
 
 class Item(Entity):
-    def __init__(self, x, y, char, color, name, value=0):
+    def __init__(self, x, y, char, color, name):
         super().__init__(x, y, char, color, name, blocks=False)
-        self.value = value
 
 
 class Tool(Item):
+    pass
+
+
+class Door(Entity):
     def __init__(self, x, y, char, color, name):
         super().__init__(x, y, char, color, name)

@@ -1,8 +1,10 @@
-from entities import Actor, Item, Tool
+from entities import Actor, Item, Tool, Door
 import colors as COLOR
 
 ENTITY_REGISTRY = {
-    ")": (Tool, COLOR.GREEN, "Hammer", 0, 0),
+    ")": (Tool, COLOR.DARK_GREEN, "Hammer"),
+    "B": (Actor, COLOR.DARK_RED, "Animated Broom"),
+    "+": (Door, COLOR.SADDLE_BROWN, "Door"),
 }
 
 
@@ -11,16 +13,15 @@ def create_entity(symbol, x, y):
     if symbol not in ENTITY_REGISTRY:
         return None
 
-    cls, color, name, hp, damage = ENTITY_REGISTRY[symbol]
+    cls, color, name = ENTITY_REGISTRY[symbol]
 
     if issubclass(cls, Actor):
-        return cls(x, y, symbol, color, name, hp, damage)
+        return cls(x, y, symbol, color, name)
     elif issubclass(cls, Item):
         # Special handling for item subtypes
         if cls == Tool:
             return Tool(x, y, symbol, color, name)
         else:
-            value = hp  # hp used as value for items
-            return cls(x, y, symbol, color, name, value)
+            return cls(x, y, symbol, color, name)
     else:
         return cls(x, y, symbol, color, name)
