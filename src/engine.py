@@ -30,37 +30,13 @@ from entities import Actor
 import colors as COLOR
 
 
-class Engine:
-    def __init__(self):
-        pygame.init()
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption(GAME_TITLE)
-        self.clock = pygame.time.Clock()
-
-        # Create fonts
-        self.font_ui = pygame.font.Font("assets/fonts/FT88-Gothique.ttf", FONT_SIZE)
-        self.font_map = pygame.font.Font("assets/fonts/FT88-Gothique.ttf", FONT_SIZE)
-
-        # Calculate the size of a character
-        width, height = self.font_map.size(WALL + FLOOR)
-        self.char_width, self.char_height = width / 2, height
-
-        # Create container surface
-        container_width = GRID_WIDTH * self.char_width
-        container_height = GRID_HEIGHT * self.char_height
-        self.container = pygame.Surface(
-            (container_width, container_height), pygame.SRCALPHA
-        )
-        self.padding_container = pygame.Surface(
-            (SCREEN_WIDTH - OUTER_PADDING * 2, SCREEN_HEIGHT - OUTER_PADDING * 2),
-            pygame.SRCALPHA,
-        )
-
+class MessageLog:
+    def __init__(self, font, char_size):
+        self.font = font
+        self.char_width, self.char_height = char_size
         # Initialize empty game messages
         self.messages = []
-
-        self.game_state = "playing"
-        self.day = 4
+        self.max_lines = MSG_HEIGHT * 3
 
     def render_colored_text(self, surface, text, position, default_color=COLOR.INK):
         """Render text with colored keywords"""
@@ -76,14 +52,14 @@ class Engine:
                 clean_word = word.strip(".,!?;:")
                 color = COLORED_WORDS.get(clean_word, default_color)
             # Render the word
-            word_surface = self.font_ui.render(word, True, color)
+            word_surface = self.font.render(word, True, color)
             word_width = word_surface.get_width()
 
             # Draw the word
             surface.blit(word_surface, (x, y))
 
             # Move to next position
-            x += word_width + self.font_ui.size(" ")[0]  # Add space width
+            x += word_width + self.font.size(" ")[0]  # Add space width
 
     def add_message(self, message, color=COLOR.INK):
         """Add a message to the log with wrapping and coloring"""
@@ -129,9 +105,70 @@ class Engine:
         for line in lines:
             self.messages.append((line, color))
 
-            # Keep message log manageable
-            if len(self.messages) > MSG_HEIGHT * 3:
-                self.messages.pop(0)
+        # Keep message log manageable
+        if len(self.messages) > self.max_lines:
+            self.messages = self.messages[-self.max_lines :]
+
+    def render(self, container):
+        """Render messages with colored keywords"""
+        msg_x, msg_y = 0, (HEADER_HEIGHT + MAP_HEIGHT) * self.char_height
+
+        # Draw message log background
+        msg_bg = pygame.Surface(
+            (MSG_WIDTH * self.char_width, MSG_HEIGHT * self.char_height),
+            pygame.SRCALPHA,
+        )
+
+        # Draw messages
+        for i, (msg, color) in enumerate(self.messages[-MSG_HEIGHT:]):
+            self.render_colored_text(
+                msg_bg,
+                msg,
+                (0, i * self.char_height),
+                color,
+            )
+
+        container.blit(msg_bg, (msg_x, msg_y))
+
+
+class Engine:
+    def __init__(self):
+        pygame.init()
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        pygame.display.set_caption(GAME_TITLE)
+        self.clock = pygame.time.Clock()
+
+        # Create fonts
+        self.font_ui = pygame.font.Font("assets/fonts/FT88-Gothique.ttf", FONT_SIZE)
+        self.font_map = pygame.font.Font("assets/fonts/FT88-Gothique.ttf", FONT_SIZE)
+
+        # Calculate the size of a character
+        width, height = self.font_map.size(WALL + FLOOR)
+        self.char_width, self.char_height = width / 2, height
+
+        self.message_log = MessageLog(
+            font=self.font_ui, char_size=(self.char_width, self.char_height)
+        )
+
+        # Create container surface
+        container_width = GRID_WIDTH * self.char_width
+        container_height = GRID_HEIGHT * self.char_height
+        self.container = pygame.Surface(
+            (container_width, container_height), pygame.SRCALPHA
+        )
+        self.padding_container = pygame.Surface(
+            (SCREEN_WIDTH - OUTER_PADDING * 2, SCREEN_HEIGHT - OUTER_PADDING * 2),
+            pygame.SRCALPHA,
+        )
+
+        self.game_state = "playing"
+        self.day = 4
+
+    def add_message(self, message, color=COLOR.INK):
+        self.message_log.add_message(message, color)
+
+    def render_colored_text(self, surface, text, position, default_color=COLOR.INK):
+        self.message_log.render_colored_text(surface, text, position, default_color)
 
     def render(self, game_map, player):
         """Render the game"""
@@ -147,7 +184,7 @@ class Engine:
         self.render_status_panel(player)
 
         # Draw message log
-        self.render_messages()
+        self.message_log.render(self.container)
 
         # Draw action menu
         self.render_action_menu()
@@ -281,27 +318,6 @@ class Engine:
             status_y += self.char_height
 
         self.container.blit(ui_bg, (ui_x, ui_y))
-
-    def render_messages(self):
-        """Render messages with colored keywords"""
-        msg_x, msg_y = 0, (HEADER_HEIGHT + MAP_HEIGHT) * self.char_height
-
-        # Draw message log background
-        msg_bg = pygame.Surface(
-            (MSG_WIDTH * self.char_width, MSG_HEIGHT * self.char_height),
-            pygame.SRCALPHA,
-        )
-
-        # Draw messages
-        for i, (msg, color) in enumerate(self.messages[-MSG_HEIGHT:]):
-            self.render_colored_text(
-                msg_bg,
-                msg,
-                (0, i * self.char_height),
-                color,
-            )
-
-        self.container.blit(msg_bg, (msg_x, msg_y))
 
     def render_action_menu(self):
         """Render the action menu"""
