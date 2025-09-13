@@ -55,7 +55,7 @@ class Engine:
         # Initialize empty game messages
         self.messages = []
 
-        self.game_state = "playing"  # "playing", "dead", "victory"
+        self.game_state = "playing"
 
     def render_colored_text(self, surface, text, position, default_color=COLOR.INK):
         """Render text with colored keywords"""
@@ -183,17 +183,12 @@ class Engine:
                         text, (entity.x * self.char_width, entity.y * self.char_height)
                     )
 
-        # Second: Draw blocking entities (enemies)
+        # Second: Draw blocking entities (creatures)
         for entity in game_map.entities:
             if entity.blocks and entity != player and entity.alive:
 
-                # Draw health indicator for enemies
+                # Draw creatures
                 color = entity.color
-                # Health indicator
-                if entity.hp / entity.max_hp < 0.3:
-                    color = COLOR.RED  # when critical
-                elif entity.hp / entity.max_hp < 0.6:
-                    color = COLOR.RED  # when wounded
 
                 text = self.font_map.render(entity.char, True, color)
                 self.container.blit(
@@ -297,8 +292,8 @@ class Engine:
 
                 if turn_passed and player.alive:
                     game_map.compute_fov(player.x, player.y)
-                    # Process enemy turns after player moves
-                    self.handle_enemy_turns(player, game_map)
+                    # Process world's turn after player moves
+                    self.handle_world_turns(player, game_map)
 
                 # Remove dead entities
                 game_map.entities[:] = [
@@ -334,8 +329,8 @@ class Engine:
         # For now, just show the items
         # Later, let the player select one to use
 
-    def handle_enemy_turns(self, player, game_map):
-        """Process enemy turns after player moves"""
+    def handle_world_turns(self, player, game_map):
+        """Process world turns after player moves"""
         messages = []
 
         for entity in game_map.entities[
@@ -349,8 +344,8 @@ class Engine:
 
                 if distance <= 8:  # Detection range
                     if distance <= 1:  # Check if player is adjacent
-                        # Attack player
-                        result = entity.attack(player)
+                        # Greets player
+                        result = entity.greet(player)
                         messages.append((result, COLOR.RED))
 
                         # Check if player died

@@ -1,19 +1,8 @@
-import random
-from entities import (
-    Actor,
-    Item,
-    Looter,
-    Heal,
-    Weapon,
-    Stairs,
-)
+from entities import Actor, Item, Tool
 import colors as COLOR
 
 ENTITY_REGISTRY = {
-    "L": (Looter, COLOR.RED, "Looter", 5, 1),
-    "!": (Heal, COLOR.GREEN, "Heal", 0, 0),
-    ")": (Weapon, COLOR.INK, "Weapon", 0, 0),
-    ">": (Stairs, COLOR.INK, "Stairs", 0, 0),
+    ")": (Tool, COLOR.GREEN, "Hammer", 0, 0),
 }
 
 
@@ -28,10 +17,8 @@ def create_entity(symbol, x, y):
         return cls(x, y, symbol, color, name, hp, damage)
     elif issubclass(cls, Item):
         # Special handling for item subtypes
-        if cls == Weapon:
-            weapons = [("Pipe Wrench", 1), ("Baseball Bat", 2), ("Fire Axe", 3)]
-            name, boost = random.choice(weapons)
-            return Weapon(x, y, color, name, boost)
+        if cls == Tool:
+            return Tool(x, y, symbol, color, name)
         else:
             value = hp  # hp used as value for items
             return cls(x, y, symbol, color, name, value)

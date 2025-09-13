@@ -3,6 +3,7 @@ import pygame
 from engine import Engine
 from entities import Player
 from map_gen import GameMap
+
 # from constants import GAME_TITLE
 
 
@@ -20,8 +21,12 @@ def main():
     # Add starting messages
     engine.add_message("> You are in the Herb Garden. ")
     engine.add_message("> The plants are lush but overgrown. ")
-    engine.add_message("> You see a particularly vibrant Silver Leaf ready for harvest. ")
-    engine.add_message("> A faint glow catches your eye from a patch of moss in the corner. ")
+    engine.add_message(
+        "> You see a particularly vibrant Silver Leaf ready for harvest. "
+    )
+    engine.add_message(
+        "> A faint glow catches your eye from a patch of moss in the corner. "
+    )
     engine.add_message("(E)xamine (H)arvest (L)ook (I)nventory (M)ap")
 
     # Main game loop

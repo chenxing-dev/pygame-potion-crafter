@@ -25,7 +25,8 @@ FONT_SIZE = 29
 # Symbols
 WALL = "#"
 FLOOR = "."
-PLAYER = "S"
+PLAYER = "@"
+PLAYER_NAME = "Lina"
 
 # Special Keywords with Colors
 COLORED_WORDS = {}
