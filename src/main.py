@@ -13,7 +13,26 @@ def main():
 
     # Create game map
     game_map = GameMap()
-    game_map.generate_map()
+
+    # Sample map
+    map_data = [
+        "##################################",
+        "#................................#",
+        "#.....#####......................#",
+        "#.....#   #......................#",
+        "#.....+   #......................#",
+        "#.....#####......................#",
+        "#..............B.................#",
+        "#................................#",
+        "#..........@.....................#",
+        "#................................#",
+        "#.................#####..........#",
+        "#.................#   #..........#",
+        "#.................#   #..........#",
+        "#.................#   #..........#",
+        "###################   ############",
+    ]
+    game_map.load_from_strings(map_data)
     engine.game_map = game_map
 
     # Create player at the starting position found in the map
@@ -30,6 +49,13 @@ def main():
         "> The main brewing station stands silent, its pipes clogged with dark residue.",
         COLOR.DARK_RED,
     )
+
+    # 初始化玩家库存
+    player.inventory.add_item("silver_leaf", 5)
+    player.inventory.add_item("lemon", 2)
+    player.inventory.add_item("glowshroom", 10)
+    player.inventory.add_item("moon_dew", 5)
+    player.inventory.add_item("glowing_moss", 3)
 
     # Main game loop
     running = True

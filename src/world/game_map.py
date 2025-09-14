@@ -1,72 +1,98 @@
+from typing import List
 import numpy as np
-from config import FLOOR, WALL, PLAYER, MAP_WIDTH, MAP_HEIGHT
-from data import ENTITY_REGISTRY, create_entity
-
-
-# Sample map
-templates = {
-    1: [
-        "##################################",
-        "#................................#",
-        "#.....#####......................#",
-        "#.....#   #......................#",
-        "#.....+   #......................#",
-        "#.....#####......................#",
-        "#..............B.................#",
-        "#................................#",
-        "#..........@.....................#",
-        "#................................#",
-        "#.................#####..........#",
-        "#.................#   #..........#",
-        "#.................#   #..........#",
-        "#.................#   #..........#",
-        "###################   ############",
-    ]
-}
+from config import COLOR, WALL, FLOOR, PLAYER, MAP_WIDTH, MAP_HEIGHT
+from entities import Reference
+from data import activator_registry
 
 
 class GameMap:
-    def __init__(self, level=1):
-        self.width = MAP_WIDTH
-        self.height = MAP_HEIGHT
+    def __init__(self):
+        self.width, self.height = MAP_WIDTH, MAP_HEIGHT
         self.tiles = np.full((self.width, self.height),
                              fill_value=" ", dtype=str)
-        self.player_start = (3, 3)  # default
-        self.level = level
-        self.entities = []  # Store entities here
 
+        self.references: List[Reference] = []  # Store references here
+        self.player_start = (3, 3)  # default
         self.fov = np.zeros((self.width, self.height), dtype=bool)
         self.explored = np.zeros((self.width, self.height), dtype=bool)
 
-    def generate_map(self):
-        """Load map from a list of strings"""
-        string_array = templates.get(self.level, templates[1])
-        self.height = len(string_array)
-        self.width = len(string_array[0])
-        self.tiles = np.full((self.width, self.height),
-                             fill_value=" ", dtype="str")
+    def create_reference(self, ref_id: str, name: str, x: int, y: int,
+                         char: str, color: tuple, description: str = "",
+                         blocks: bool = False, interactable: bool = False):
+        """创建Reference并添加到地图"""
+        reference = Reference(ref_id, name, x, y, char,
+                              color, description, blocks, interactable)
+        self.references.append(reference)
+        return reference
 
-        self.entities = []  # Reset entities
-        self.player_start = (3, 3)  # default
+    def create_activator_reference(self, activator_id: str, x: int, y: int,
+                                   char: str, color: tuple, description: str = ""):
+        """创建激活器参照物"""
+        activator = activator_registry.get_activator(activator_id)
+        if not activator:
+            return None
 
+        ref_id = f"{activator_id}_{x}_{y}"
+        reference = self.create_reference(
+            ref_id, activator.name, x, y, char, color,
+            description or activator.description,
+            blocks=True,  # 激活器通常阻挡移动
+            interactable=True  # 激活器可交互
+        )
+
+        # 存储激活器ID以便后续查找
+        reference.id = activator_id
+
+        return reference
+
+    def load_from_strings(self, map_strings: list):
+        """从字符串列表加载地图"""
         # Convert text map to grid
-        for y, row in enumerate(string_array):
+        for y, row in enumerate(map_strings):
             for x, char in enumerate(row):
                 if x < self.width and y < self.height:
                     # Set tile type
-                    if char in (WALL, FLOOR, " "):
+                    if char == " ":
                         self.tiles[x, y] = char
+                    elif char == WALL:
+                        self.tiles[x, y] = char
+                        self.create_reference(
+                            f"wall_{x}_{y}", "Wall", x, y, WALL, COLOR.INK,
+                            "A solid stone wall.", True, False
+                        )
+                    elif char == FLOOR:
+                        self.tiles[x, y] = char
+                        self.create_reference(
+                            f"floor_{x}_{y}", "Floor", x, y, FLOOR, COLOR.LIGHT_TAUPE,
+                            "A stone floor.", False, False
+                        )
                     else:
                         self.tiles[x, y] = FLOOR  # Entities on floor tiles
+                        self.create_reference(
+                            f"floor_{x}_{y}", "Floor", x, y, FLOOR, COLOR.LIGHT_TAUPE,
+                            "A stone floor.", False, False
+                        )
 
                     # Place entities
                     if char == PLAYER:
                         # This is the player starting position
                         self.player_start = (x, y)
-                    elif char in ENTITY_REGISTRY:
-                        entity = create_entity(char, x, y)
-                        if entity:
-                            self.entities.append(entity)
+                    elif char == 'B':  # 酿造台
+                        self.create_activator_reference(
+                            "brewing_station", x, y, "B", COLOR.DARK_RED
+                        )
+                    elif char == 'H':  # 草药
+                        self.create_reference(
+                            "silver_leaf", "Herb", x, y, "%", COLOR.DARK_GREEN,
+                            "A medicinal herb.", False, True
+                        )
+
+    def get_reference_at(self, x: int, y: int):
+        """获取指定位置的参照物"""
+        for ref in self.references:
+            if ref.x == x and ref.y == y:
+                return ref
+        return None
 
     def is_blocked(self, x, y):
         """Check if a tile is blocked (wall)"""

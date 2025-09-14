@@ -1,13 +1,10 @@
-# 实现
-
-1. 交互设计
-   - 操作菜单根据上下文动态更新显示的可操作命令。
-     - 当有可收获对象时，显示: (H)arvest | (L)ook | (I)nventory
-     - 按下'E'键进入检查模式
-     - 显示所有附近可检查对象，如: 
-     - (B)rewing Station | (S)ilver Leaf | (C)ancel
-     - (B)rewing Station | (R)usted Pipe | (A)nvil | (C)ancel
-     - (C)rystal | (B)ack
+# 操作菜单根据上下文动态更新显示的可操作命令。
+- 当有可收获对象时，显示: (H)arvest | (L)ook | (I)nventory
+- 按下'E'键进入检查模式
+- 显示所有附近可检查对象，如: 
+- (B)rewing Station | (S)ilver Leaf | (C)ancel
+- (B)rewing Station | (R)usted Pipe | (A)nvil | (C)ancel
+- (C)rystal | (B)ack
 
 # 优先开发清单
 
@@ -69,17 +66,8 @@ def listen_callback(obj, game):
    return random.choice(sounds)
 ```
 
-# 库存系统设计
-- [ ] 创建一个专门的库存类
-  - [ ] 堆叠支持：正确处理可堆叠和不可堆叠物品
-- [ ] 在Player类中使用库存系统
-
 # 配方系统改进
 - [ ] CraftingRecipe的result不应该是Ingredient类。
-
-# 初始化物品
-- [ ] 在游戏初始化时，注册所有物品
-- [ ] 类型安全：通过物品注册表确保所有物品ID都对应有效的物品对象
 
 # 地图符号
 ```py
@@ -91,3 +79,23 @@ SCROLL = "?"
 # 特殊符号
 INVENTORY_SLOT = "■"
 ```
+
+## 继承结构
+```
+GameObject (基类，所有游戏对象的根)
+├── Reference (地图上的静态参照物)
+├── Mobile (可移动的对象)
+│   └── Actor (可以执行动作的实体)
+│       └── Player (玩家)
+└── Item (可拾取的物品)
+```
+## Reference类
+- [ ] 为Reference类添加object_type和object属性
+- [ ] 支持多种类型的对象（激活器、物品、门等）
+
+## 地图生成系统
+- [ ] 在游戏初始化中注册地图元素
+
+## 移动交互处理
+- [ ] 在Actor类中实现统一的交互处理机制
+- [ ] 根据对象类型执行相应的交互逻辑

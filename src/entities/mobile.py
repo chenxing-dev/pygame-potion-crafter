@@ -1,4 +1,4 @@
-from entities.base import GameObject
+from entities.game_object import GameObject
 
 
 class Mobile(GameObject):

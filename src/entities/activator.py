@@ -1,17 +1,27 @@
-from typing import Callable
-from entities.entity import Entity
+from dataclasses import dataclass
+from typing import Callable, Dict, Optional
+
+from entities.game_object import GameObject
 
 
-class Activator(Entity):
-    def __init__(self, e_id, name, char, color, description, actions: dict[str, Callable]):
-        super().__init__(e_id, char, color, description, name)
+@dataclass
+class Activator(GameObject):
+    """可交互对象，存储交互逻辑"""
+
+    def __init__(self, activator_id: str, name: str, description: str, actions: Optional[Dict[str, Callable]] = None):
+        super().__init__(activator_id, name, description)
         self.actions = actions
 
     def get_actions(self):
-        return list(self.actions.keys())
+        """获取可用的动作列表"""
+        if self.actions:
+            return list(self.actions.keys())
+        return []
 
-    def activate(self, action_name: str, game):
-        action = self.actions.get(action_name)
-        if action:
-            return action(self, game)
+    def activate(self, action_name: str, game) -> str | None:
+        """执行动作"""
+        if self.actions:
+            action = self.actions.get(action_name)
+            if action:
+                return action(self, game)
         return None

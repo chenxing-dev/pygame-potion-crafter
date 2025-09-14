@@ -23,7 +23,7 @@ class ItemRegistry:
         return self.items.copy()
 
 
-# 全局物品注册实例
+# 创建全局物品注册表
 item_registry = ItemRegistry()
 
 # 注册物品

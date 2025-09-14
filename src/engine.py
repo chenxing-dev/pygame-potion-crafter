@@ -32,6 +32,7 @@ from data.recipes import load_recipes
 
 class Engine:
     def __init__(self):
+        # 初始化游戏状态
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption(GAME_TITLE)
@@ -45,6 +46,7 @@ class Engine:
         width, height = self.font.size(WALL + FLOOR)
         self.char_size = (width / 2, height)
 
+        self.world_state = {}
         self.game_map: GameMap | None = None  # Will be set in main
         self.player: Player | None = None  # Will be set in main
         # Will be initialized after player and map are set
@@ -391,11 +393,7 @@ class Engine:
             return
 
         self.add_message("Inventory:")
-        for _, item in enumerate(player.inventory):
-            self.add_message(item)
-
-        # For now, just show the items
-        # Later, let the player select one to use
+        self.add_message(player.get_inventory_display())
 
     def handle_world_turns(self, player, game_map):
         """Process world turns after player moves"""
