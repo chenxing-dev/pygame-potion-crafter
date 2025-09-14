@@ -27,7 +27,7 @@ def main():
         "> You enter the quiet workshop. Dust motes dance in the sunlight."
     )
     engine.add_message(
-        "> The main brewing tower stands silent, its pipes clogged with dark residue.",
+        "> The main brewing station stands silent, its pipes clogged with dark residue.",
         COLOR.DARK_RED,
     )
 

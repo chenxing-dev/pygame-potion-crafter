@@ -32,7 +32,7 @@ def load_recipes(recipe_manager: RecipeManager):
                 Ingredient(item_id="glowing_moss", quantity=1),
             ],
             result=Ingredient(item_id="glowshroom_essence", quantity=1),
-            required_station="brewing_tower",
+            required_station="brewing_station",
             time=50,
             category="Alchemy",
             tags=["magical", "order"],

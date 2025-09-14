@@ -5,6 +5,7 @@ from entities.entity import Entity
 from entities.item import Item
 from entities.player import Player
 from entities.tool import Tool
+from entities.reference import Reference
 
 __all__ = [
     "Activator",

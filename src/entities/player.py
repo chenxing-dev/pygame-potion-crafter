@@ -6,16 +6,10 @@ from entities.item import Item
 
 
 class Player(Actor):
-    def __init__(self, x, y):
-        super().__init__("player", x, y, PLAYER, COLOR.DARK_RED, PLAYER_NAME)
-        # 玩家库存示例
-        self.inventory = {
-            "silver_leaf": 5,
-            "lemon": 2,
-            "glowshroom": 10,
-            "moon_dew": 5,
-            "glowing_moss": 3,
-        }
+    """玩家类"""
+
+    def __init__(self, x: int, y: int):
+        super().__init__("player", PLAYER_NAME, x, y, PLAYER, COLOR.DARK_RED)
         self.skills = {
             "Alchemy": 2,
             "Herbalism": 1,
@@ -24,12 +18,9 @@ class Player(Actor):
         self.location = "Herb Garden"
         self.tasks = ["Harvest Silver Leaf (3/5)"]
 
-    def get_inventory(self):
-        item_list = []
-        for item_id, quantity in self.inventory.items():
-            item_name = item_id  # TODO: get_item(item_id).name
-            item_list.append(f"{item_name} x{quantity}")
-        return item_list
+    def get_inventory_display(self):
+        """获取用于显示的库存列表"""
+        return self.inventory.get_display_list()
 
     def move(self, dx: int, dy: int, game_map) -> dict[str, bool | str | None]:
         """Move the player if the target position is not blocked"""

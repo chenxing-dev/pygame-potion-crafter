@@ -5,8 +5,8 @@
      - 当有可收获对象时，显示: (H)arvest | (L)ook | (I)nventory
      - 按下'E'键进入检查模式
      - 显示所有附近可检查对象，如: 
-     - (B)rewing Tower | (S)ilver Leaf | (C)ancel
-     - (B)rewing Tower | (R)usted Pipe | (A)nvil | (C)ancel
+     - (B)rewing Station | (S)ilver Leaf | (C)ancel
+     - (B)rewing Station | (R)usted Pipe | (A)nvil | (C)ancel
      - (C)rystal | (B)ack
 
 # 优先开发清单
