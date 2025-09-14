@@ -1,5 +1,5 @@
-import colors as COLOR
-from constants import PLAYER, PLAYER_NAME
+import config.colors as COLOR
+from config.symbols import PLAYER, PLAYER_NAME
 from entities.actor import Actor
 from entities.door import Door
 from entities.item import Item
@@ -7,7 +7,7 @@ from entities.item import Item
 
 class Player(Actor):
     def __init__(self, x, y):
-        super().__init__(x, y, PLAYER, COLOR.DARK_RED, PLAYER_NAME)
+        super().__init__("player", x, y, PLAYER, COLOR.DARK_RED, PLAYER_NAME)
         # 玩家库存示例
         self.inventory = {
             "silver_leaf": 5,
@@ -48,7 +48,10 @@ class Player(Actor):
 
         if target:
             if isinstance(target, Door):
-                return {"moved": False, "message": target.use(game_map.entities)}
+                # Handle door interaction
+                message = target.activate()
+                self.x, self.y = new_x, new_y
+                return {"moved": True, "message": message}
             if isinstance(target, Actor):
                 return {"moved": False, "message": self.greet(target)}
             if isinstance(target, Item):

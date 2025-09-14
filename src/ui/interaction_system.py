@@ -17,6 +17,8 @@ class InteractionSystem:
             "clean": "C",
             "examine": "E",
             "harvest": "H",
+            "open": "O",
+            "close": "O",
             "talk": "T",
             "use": "U",
         }
@@ -45,12 +47,14 @@ class InteractionSystem:
 
             # Check for objects at this position
             for obj in self.game_map.entities:
-                if obj.x == x and obj.y == y and action_type in obj.get_actions():
-                    # 为每个对象生成唯一的选择键
-                    key = self.get_unique_key(obj.name, targets)
-                    used_keys.add(key)
-                    targets.append({"key": key, "object": obj,
-                                   "position": (x, y), "name": obj.name})
+                if obj.x == x and obj.y == y:
+                    # Check if the object has a get_actions method
+                    if hasattr(obj, "get_actions") and action_type in obj.get_actions():
+                        # 为每个对象生成唯一的选择键
+                        key = self.get_unique_key(obj.name, targets)
+                        used_keys.add(key)
+                        targets.append({"key": key, "object": obj,
+                                        "position": (x, y), "name": obj.name})
 
         return targets, used_keys
 
@@ -119,7 +123,8 @@ class InteractionSystem:
     def perform_action(self, target_object):
         """在目标对象上执行交互动作"""
         result = target_object.activate(self.interaction_mode, self.game)
-        self.game.add_message(result)
+        if result:
+            self.game.add_message(result)
         self.cancel_interaction()
 
     def cancel_interaction(self):

@@ -5,3 +5,7 @@ LIGHT_TAUPE = (196, 186, 163)  # 浅灰褐色 #C4BAA3
 DARK_RED = (165, 42, 42)  # 深红色 #A52A2A
 SADDLE_BROWN = (139, 69, 19)  # 深棕色 #8B4513
 DARK_GREEN = (85, 107, 47)  # 深绿色 #556B2F
+
+
+# Special Keywords with Colors
+COLORED_WORDS = {}

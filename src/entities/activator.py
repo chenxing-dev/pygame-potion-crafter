@@ -3,8 +3,8 @@ from entities.entity import Entity
 
 
 class Activator(Entity):
-    def __init__(self, x, y, char, color, name, actions: dict[str, Callable]):
-        super().__init__(x, y, char, color, name)
+    def __init__(self, e_id, x, y, char, color, name, actions: dict[str, Callable]):
+        super().__init__(e_id, x, y, char, color, name)
         self.actions = actions
 
     def get_actions(self):

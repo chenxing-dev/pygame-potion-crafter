@@ -1,8 +1,8 @@
 from entities import Activator, Actor, Item, Tool, Door
-import colors as COLOR
+import config.colors as COLOR
 
 
-def create_brewing_tower(x, y, char, color, name):
+def create_brewing_tower(e_id, x, y, char, color, name):
     def examine_callback(_, __):
         return "The main brewing tower is clogged with a dark substance.\n" + \
                "It looks like it needs to be cleaned out before it can be used."
@@ -22,13 +22,13 @@ def create_brewing_tower(x, y, char, color, name):
         "clean": clean_callback
     }
 
-    return Activator(x, y, char, color, name, actions)
+    return Activator(e_id, x, y, char, color, name, actions)
 
 
 ENTITY_REGISTRY = {
-    ")": (Tool, COLOR.DARK_GREEN, "Hammer", None),
-    "B": (Activator, COLOR.DARK_RED, "Brewing Tower", create_brewing_tower),
-    "+": (Door, COLOR.SADDLE_BROWN, "Door", None),
+    ")": (Tool, COLOR.DARK_GREEN, "hammer", "Hammer", None),
+    "B": (Activator, COLOR.DARK_RED, "brewing_tower", "Brewing Tower", create_brewing_tower),
+    "+": (Door, COLOR.SADDLE_BROWN, "door", "Door", None),
 }
 
 
@@ -37,15 +37,15 @@ def create_entity(symbol, x, y):
     if symbol not in ENTITY_REGISTRY:
         return None
 
-    cls, color, name, create_func = ENTITY_REGISTRY[symbol]
+    cls, color, e_id, name, create_func = ENTITY_REGISTRY[symbol]
 
     if issubclass(cls, Activator):
-        return create_func(x, y, symbol, color, name)
+        return create_func(e_id, x, y, symbol, color, name)
     if issubclass(cls, Actor):
-        return cls(x, y, symbol, color, name)
+        return cls(e_id, x, y, symbol, color, name)
     if issubclass(cls, Item):
         # Special handling for item subtypes
         if cls == Tool:
-            return Tool(x, y, symbol, color, name)
-        return cls(x, y, symbol, color, name)
-    return cls(x, y, symbol, color, name)
+            return Tool(e_id, x, y, symbol, color, name)
+        return cls(e_id, x, y, symbol, color, name)
+    return cls(e_id, x, y, symbol, color, name)

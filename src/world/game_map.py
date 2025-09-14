@@ -1,6 +1,6 @@
 import numpy as np
-from constants import FLOOR, WALL, PLAYER, MAP_WIDTH, MAP_HEIGHT
-from entity_registry import ENTITY_REGISTRY, create_entity
+from config import FLOOR, WALL, PLAYER, MAP_WIDTH, MAP_HEIGHT
+from data import ENTITY_REGISTRY, create_entity
 
 
 # Sample map
@@ -29,7 +29,8 @@ class GameMap:
     def __init__(self, level=1):
         self.width = MAP_WIDTH
         self.height = MAP_HEIGHT
-        self.tiles = np.full((self.width, self.height), fill_value=" ", dtype=str)
+        self.tiles = np.full((self.width, self.height),
+                             fill_value=" ", dtype=str)
         self.player_start = (3, 3)  # default
         self.level = level
         self.entities = []  # Store entities here
@@ -42,7 +43,8 @@ class GameMap:
         string_array = templates.get(self.level, templates[1])
         self.height = len(string_array)
         self.width = len(string_array[0])
-        self.tiles = np.full((self.width, self.height), fill_value=" ", dtype="str")
+        self.tiles = np.full((self.width, self.height),
+                             fill_value=" ", dtype="str")
 
         self.entities = []  # Reset entities
         self.player_start = (3, 3)  # default

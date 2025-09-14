@@ -1,6 +1,6 @@
 import pygame
-import colors as COLOR
-from constants import COLORED_WORDS, GRID_WIDTH, HEADER_HEIGHT, MAP_HEIGHT, MSG_WIDTH, MSG_HEIGHT
+from config import COLOR, COLORED_WORDS
+from config.settings import GRID_WIDTH, HEADER_HEIGHT, MAP_HEIGHT, MSG_WIDTH, MSG_HEIGHT
 
 
 class MessageLog:

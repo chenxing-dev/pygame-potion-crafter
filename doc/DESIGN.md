@@ -1,5 +1,3 @@
-- [ ] The data structure for crafting recipes.
-
 # 实现
 
 1. 交互设计
@@ -69,4 +67,27 @@ def listen_callback(obj, game):
         "You hear the faint rustling of plants growing."
    ]
    return random.choice(sounds)
+```
+
+# 库存系统设计
+- [ ] 创建一个专门的库存类
+  - [ ] 堆叠支持：正确处理可堆叠和不可堆叠物品
+- [ ] 在Player类中使用库存系统
+
+# 配方系统改进
+- [ ] CraftingRecipe的result不应该是Ingredient类。
+
+# 初始化物品
+- [ ] 在游戏初始化时，注册所有物品
+- [ ] 类型安全：通过物品注册表确保所有物品ID都对应有效的物品对象
+
+# 地图符号
+```py
+DOOR = "+"
+HERB = "%"
+TOOL = "†"
+SCROLL = "?"
+
+# 特殊符号
+INVENTORY_SLOT = "■"
 ```

@@ -1,14 +1,12 @@
-# Game title and description
+# 游戏设置
 GAME_TITLE = "Apprentice Log: Workshop Restoration"
-GAME_DESCRIPTION = ""
+GAME_DESCRIPTION = "A cozy crafting game about restoring an alchemist's workshop."
 
-# Screen dimensions
+# 屏幕和网格尺寸
 SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
+GRID_WIDTH, GRID_HEIGHT = 60, 23  # 网格尺寸（字符数）
 
-# Grid dimensions (characters on screen)
-GRID_WIDTH, GRID_HEIGHT = 60, 23
-
-# UI panel & Map dimensions
+# UI 面板尺寸
 HEADER_WIDTH, HEADER_HEIGHT = GRID_WIDTH, 1
 MSG_WIDTH, MSG_HEIGHT = GRID_WIDTH, 6
 MENU_WIDTH, MENU_HEIGHT = GRID_WIDTH, 1
@@ -19,18 +17,9 @@ MAP_WIDTH, MAP_HEIGHT = (
 )
 UI_HEIGHT = MAP_HEIGHT
 
-# Padding in px
+# 内边距和外边距
 INNER_PADDING = 6
 OUTER_PADDING = 6
 
-# Font settings
+# 字体设置
 FONT_SIZE = 30
-
-# Symbols
-WALL = "#"
-FLOOR = "."
-PLAYER = "@"
-PLAYER_NAME = "Lina"
-
-# Special Keywords with Colors
-COLORED_WORDS = {}

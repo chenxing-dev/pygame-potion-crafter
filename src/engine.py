@@ -3,14 +3,11 @@ from typing import Tuple
 import math
 import pygame
 
-from constants import (
+from config.settings import (
     GAME_TITLE,
     SCREEN_WIDTH,
     SCREEN_HEIGHT,
     FONT_SIZE,
-    WALL,
-    FLOOR,
-    PLAYER,
     GRID_WIDTH,
     GRID_HEIGHT,
     HEADER_WIDTH,
@@ -24,8 +21,9 @@ from constants import (
     INNER_PADDING,
     OUTER_PADDING,
 )
+from config.symbols import WALL, FLOOR, PLAYER
 from entities import Actor, Player
-import colors as COLOR
+import config.colors as COLOR
 from ui import MessageLog, InteractionSystem
 from world import GameMap
 from crafting.recipe_manager import RecipeManager
@@ -153,7 +151,7 @@ class Engine:
         # Create a set of positions occupied by blocking entities
         blocking_positions = set()
         for entity in game_map.entities:
-            if entity.blocks and entity != player and entity.alive:
+            if entity.blocks and entity != player:
                 blocking_positions.add((entity.x, entity.y))
 
         # Draw non-blocking entities only if not covered by blocking entities
@@ -172,7 +170,7 @@ class Engine:
 
         # Second: Draw blocking entities (creatures)
         for entity in game_map.entities:
-            if entity.blocks and entity != player and entity.alive:
+            if entity.blocks and entity != player:
 
                 # Draw creatures
                 color = entity.color
@@ -187,15 +185,14 @@ class Engine:
                 )
 
         # Third: Draw player (always on top)
-        if player.alive:
-            player_text = self.font.render(PLAYER, True, player.color)
-            map_bg.blit(
-                player_text,
-                (
-                    player.x * self.char_size[0],
-                    player.y * self.char_size[1],
-                ),
-            )
+        player_text = self.font.render(PLAYER, True, player.color)
+        map_bg.blit(
+            player_text,
+            (
+                player.x * self.char_size[0],
+                player.y * self.char_size[1],
+            ),
+        )
 
         self.surfaces["container"].blit(map_bg, (map_x, map_y))
 
@@ -373,7 +370,7 @@ class Engine:
 
             # After handling a player action that passes a turn,
             # advance the world state
-            if turn_passed and player.alive:
+            if turn_passed:
                 game_map.compute_fov(player.x, player.y)
                 self.handle_world_turns(player, game_map)
 
@@ -387,7 +384,7 @@ class Engine:
         description = "You look around and see nothing special."
         self.add_message(description)
 
-    def show_inventory(self, player):
+    def show_inventory(self, player: Player):
         """Display inventory and allow item usage"""
         if not player.inventory:
             self.add_message("Your inventory is empty.")
@@ -395,7 +392,7 @@ class Engine:
 
         self.add_message("Inventory:")
         for _, item in enumerate(player.inventory):
-            self.add_message(item.name)
+            self.add_message(item)
 
         # For now, just show the items
         # Later, let the player select one to use
@@ -407,7 +404,7 @@ class Engine:
         for entity in game_map.entities[
             :
         ]:  # Use slice copy to avoid modification issues
-            if isinstance(entity, Actor) and entity is not player and entity.alive:
+            if isinstance(entity, Actor) and entity is not player:
                 # Calculate distance to player
                 distance = math.sqrt(
                     (entity.x - player.x) ** 2 + (entity.y - player.y) ** 2
@@ -460,7 +457,7 @@ class Engine:
             # Check if there's an actor in that position
             occupied = False
             for e in game_map.entities:
-                if e.blocks and e.x == nx and e.y == ny and e.alive:
+                if e.blocks and e.x == nx and e.y == ny:
                     occupied = True
                     break
             if occupied:

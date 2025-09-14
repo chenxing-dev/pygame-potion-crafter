@@ -4,7 +4,7 @@ import pygame
 from engine import Engine, InteractionSystem
 from entities import Player
 from world import GameMap
-import colors as COLOR
+from config import COLOR
 
 
 def main():
