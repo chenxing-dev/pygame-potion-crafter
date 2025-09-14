@@ -15,12 +15,11 @@ def create_brewing_tower(x, y, char, color, name):
                 "It begins dissolving the blockage.", COLOR.DARK_GREEN)
             # Additional logic to mark the brewing tower as cleaned
             return "The pipes begin to gurgle as the blockage is cleared."
-        else:
-            return "You need a cleaning solution to clear these pipes."
+        return "You need a cleaning solution to clear these pipes."
 
     actions = {
-        "Examine": examine_callback,
-        "Clean": clean_callback
+        "examine": examine_callback,
+        "clean": clean_callback
     }
 
     return Activator(x, y, char, color, name, actions)

@@ -86,7 +86,7 @@ class Door(Entity):
 
     def use(self, entities):
         entities.remove(self)
-        return f"{self.name} opens the door."
+        return f"{PLAYER_NAME} opens the door."
 
 
 class Activator(Entity):
@@ -100,5 +100,5 @@ class Activator(Entity):
     def activate(self, action_name: str, game):
         action = self.actions.get(action_name)
         if action:
-            return action(game)
+            return action(self, game)
         return None

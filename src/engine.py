@@ -28,6 +28,7 @@ from constants import (
 )
 from entities import Actor, Player
 import colors as COLOR
+from map_gen import GameMap
 
 
 class MessageLog:
@@ -37,6 +38,7 @@ class MessageLog:
         # Initialize empty game messages
         self.messages = []
         self.max_lines = MSG_HEIGHT * 3
+        self.scroll_offset = 0
 
     def render_colored_text(self, surface, text, position, default_color=COLOR.INK):
         """Render text with colored keywords"""
@@ -109,6 +111,22 @@ class MessageLog:
         if len(self.messages) > self.max_lines:
             self.messages = self.messages[-self.max_lines:]
 
+        # Auto-scroll to bottom
+        self.scroll_to_bottom()
+
+    def scroll_to_bottom(self):
+        """Scroll to the bottom of the message log"""
+        self.scroll_offset = max(0, len(self.messages) - MSG_HEIGHT)
+
+    def scroll_up(self):
+        """Scroll up one line"""
+        self.scroll_offset = max(0, self.scroll_offset - 1)
+
+    def scroll_down(self):
+        """Scroll down one line"""
+        self.scroll_offset = min(len(self.messages) - self.max_lines,
+                                 self.scroll_offset + 1)
+
     def render(self, container):
         """Render messages with colored keywords"""
         msg_x, msg_y = 0, (HEADER_HEIGHT + MAP_HEIGHT) * self.char_height
@@ -119,8 +137,12 @@ class MessageLog:
             pygame.SRCALPHA,
         )
 
+        # Calculate visible messages
+        start_idx = self.scroll_offset
+        end_idx = min(start_idx + self.max_lines, len(self.messages))
+
         # Draw messages
-        for i, (msg, color) in enumerate(self.messages[-MSG_HEIGHT:]):
+        for i, (msg, color) in enumerate(self.messages[start_idx:end_idx]):
             self.render_colored_text(
                 msg_bg,
                 msg,
@@ -129,6 +151,128 @@ class MessageLog:
             )
 
         container.blit(msg_bg, (msg_x, msg_y))
+
+
+class InteractionSystem:
+    def __init__(self, game):
+        self.game = game
+        self.game_map = game.game_map
+        self.interaction_mode = None
+        self.available_targets = []
+        self.cancel_key = "C"  # 默认取消键
+        self.cancel_text = "(C)ancel"
+
+    def get_nearby_interaction_targets(self, action_type):
+        """获取玩家附近可交互的对象"""
+        directions = [(0, 0), (0, -1), (-1, 0), (1, 0), (0, 1)]
+        # Check all 4 directions around player plus current position
+        targets = []
+        used_keys = set()
+
+        for dx, dy in directions:
+            x, y = self.game.player.x + dx, self.game.player.y + dy
+
+            # Check for objects at this position
+            for obj in self.game_map.entities:
+                if obj.x == x and obj.y == y and action_type in obj.get_actions():
+                    # 为每个对象生成唯一的选择键
+                    key = self.get_unique_key(obj.name, targets)
+                    used_keys.add(key)
+                    targets.append({"key": key, "object": obj,
+                                   "position": (x, y), "name": obj.name})
+
+        return targets, used_keys
+
+    def get_unique_key(self, name, used_keys):
+        """为对象生成唯一的选择键（首字母）"""
+
+        # 尝试使用名称中的每个字母
+        for char in name:
+            if char.isalpha() and char.upper():
+                if char.upper() not in used_keys:
+                    return char.upper()
+
+        # 如果所有字母都被使用，返回数字键
+        for i in range(1, 10):
+            num_key = str(i)
+            if num_key not in used_keys:
+                return num_key
+
+        # Fallback: 使用*
+        return "*"
+
+    def start_interaction(self, action_type):
+        """开始交互模式"""
+        self.interaction_mode = action_type
+        self.available_targets, used_keys = self.get_nearby_interaction_targets(
+            action_type)
+
+        # 确定取消键
+        self.cancel_key, self.cancel_text = self.get_cancel_key(used_keys)
+
+    def get_cancel_key(self, used_keys) -> Tuple[str, str]:
+        """获取唯一的取消键"""
+        # Try 'C' first
+        if "C" not in used_keys:
+            return "C", "ancel"
+        # 尝试B (Back)
+        if "B" not in used_keys:
+            return "B", "ack"
+        # 尝试X (eXit)
+        if "X" not in used_keys:
+            return "X", " Exit"
+        # 尝试Z (cancel)
+        if "Z" not in used_keys:
+            return "Z", " Cancel"
+        # Final fallback
+        return "*", " Cancel"
+
+    def handle_interaction_input(self, key):
+        """处理交互模式下的输入"""
+        key_char = pygame.key.name(key).upper()
+
+        # 检查是否按下了取消键
+        if key_char == self.cancel_key:
+            self.cancel_interaction()
+            return True
+
+        # 检查是否按下了某个目标的选择键
+        if self.interaction_mode and self.available_targets:
+            for target in self.available_targets:
+                if target['key'] == key_char:
+                    self.perform_action(target['object'])
+                    return True
+
+        return False
+
+    def perform_action(self, target_object):
+        """在目标对象上执行交互动作"""
+        result = target_object.activate(self.interaction_mode, self.game)
+        self.game.add_message(result)
+        self.cancel_interaction()
+
+    def cancel_interaction(self):
+        """取消交互模式"""
+        self.interaction_mode = None
+        self.available_targets = []
+
+    def get_interaction_menu_items(self):
+        """获取当前交互菜单项"""
+        if not self.interaction_mode or not self.available_targets:
+            return []
+
+        menu_items = []
+        # 添加目标选项
+        for target in self.available_targets:
+            if target['key'] == target['name'][0].upper():
+                menu_items.append((target['key'], target['name'][1:]))
+            else:
+                menu_items.append((target['key'], f" {target['name']}"))
+
+        # 添加取消选项
+        menu_items.append((self.cancel_key, self.cancel_text))
+
+        return menu_items
 
 
 class Engine:
@@ -145,6 +289,11 @@ class Engine:
         # Calculate the size of a character
         width, height = self.font.size(WALL + FLOOR)
         self.char_size = (width / 2, height)
+
+        self.game_map: GameMap | None = None  # Will be set in main
+        self.player: Player | None = None  # Will be set in main
+        # Will be initialized after player and map are set
+        self.interaction_system: InteractionSystem | None = None
 
         self.message_log = MessageLog(
             font=self.font, char_size=self.char_size
@@ -191,8 +340,7 @@ class Engine:
         self.message_log.render(self.surfaces["container"])
 
         # Render action menu based on context
-        actions = self.get_available_actions()
-        self.render_action_menu(actions)
+        self.render_action_menu()
 
         # Draw container to screen with padding
         self.surfaces["padding_container"].fill(COLOR.PARCHMENT)
@@ -332,16 +480,32 @@ class Engine:
 
     def get_available_actions(self):
         """Determine available actions based on context"""
-        # For simplicity, return a static list for now
-        return ["Examine", "Harvest", "Look", "Inventory", "Map"]
+        # Default actions
+        actions = [("L", "ook"), ("I", "nventory")]
+        if not self.interaction_system:
+            return actions
+        if self.interaction_system and self.interaction_system.interaction_mode:
+            return self.interaction_system.get_interaction_menu_items()
 
-    def render_action_menu(self, actions):
+        # 检查附近是否有可Examine对象
+        examine_targets, _ = self.interaction_system.get_nearby_interaction_targets(
+            "examine")
+        if examine_targets:
+            actions.insert(0, ("E", "xamine"))
+
+        return actions
+
+    def render_action_menu(self):
         """Render the action menu"""
+
+        actions = self.get_available_actions()
+        if not actions:
+            return
         separator = "|"
 
         # 绘制动作菜单
         menu_x, menu_y = 0, (GRID_HEIGHT - MENU_HEIGHT) * self.char_size[1]
-        current_x = 0
+        current_x = menu_x
 
         menu_bg = pygame.Surface(
             (MENU_WIDTH * self.char_size[0], MENU_HEIGHT * self.char_size[1]),
@@ -349,21 +513,21 @@ class Engine:
         )
 
         for i, action in enumerate(actions):
-            # 提取首字母和剩余部分
-            first_letter = f"({action[0]})"
-            rest_of_text = action[1:]
+            # 提取键和文本
+            key = f"({action[0]})"
+            text = action[1]
 
             # 绘制首字母（深绿色）
             self.render_colored_text(
-                menu_bg, first_letter, (current_x, 0), COLOR.SADDLE_BROWN
+                menu_bg, key, (current_x, 0), COLOR.SADDLE_BROWN
             )
-            current_x += len(first_letter) * self.char_size[0]
+            current_x += len(key) * self.char_size[0]
 
             # 绘制剩余文本（浅灰褐色）
             self.render_colored_text(
-                menu_bg, rest_of_text, (current_x, 0), COLOR.LIGHT_TAUPE
+                menu_bg, text, (current_x, 0), COLOR.LIGHT_TAUPE
             )
-            current_x += (len(rest_of_text) + 1) * self.char_size[0]
+            current_x += (len(text) + 1) * self.char_size[0]
 
             # 如果不是最后一个动作，添加分隔符
             if i < len(actions) - 1:
@@ -391,6 +555,7 @@ class Engine:
         }
 
         for event in pygame.event.get():
+            # Handle quit event first
             if event.type == pygame.QUIT:
                 keep_running = False
                 break
@@ -398,10 +563,18 @@ class Engine:
             if event.type != pygame.KEYDOWN:
                 continue
 
-            # Global quit
+            # 优先处理ESCAPE键
             if event.key == pygame.K_ESCAPE:
                 keep_running = False
                 break
+
+            # 如果在交互模式下，让交互系统处理输入
+            if self.interaction_system and self.interaction_system.interaction_mode:
+                handled = self.interaction_system.handle_interaction_input(
+                    event.key)
+                if handled:
+                    # If interaction input was handled, skip further processing
+                    continue
 
             turn_passed = False
 
@@ -419,11 +592,16 @@ class Engine:
 
             elif event.key == pygame.K_e:
                 # Examine action
-                self.add_message("You examine your surroundings.")
+                if self.interaction_system:
+                    self.interaction_system.start_interaction("examine")
 
             elif event.key == pygame.K_i:
                 # Opening inventory does not pass a turn
                 self.show_inventory(player)
+                continue
+
+            elif event.key == pygame.K_l:  # 查看
+                self.look_around()
                 continue
 
             # After handling a player action that passes a turn,
@@ -436,6 +614,11 @@ class Engine:
             break
 
         return keep_running
+
+    def look_around(self):
+        """Player looks around and gets descriptions of the surroundings"""
+        description = "You look around and see nothing special."
+        self.add_message(description)
 
     def show_inventory(self, player):
         """Display inventory and allow item usage"""

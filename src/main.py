@@ -1,6 +1,6 @@
 # pylint:disable=
 import pygame
-from engine import Engine
+from engine import Engine, InteractionSystem
 from entities import Player
 from map_gen import GameMap
 import colors as COLOR
@@ -13,9 +13,13 @@ def main():
     # Create game map
     game_map = GameMap()
     game_map.generate_map()
+    engine.game_map = game_map
 
     # Create player at the starting position found in the map
     player = Player(*game_map.player_start)
+    engine.player = player
+
+    engine.interaction_system = InteractionSystem(engine)
 
     # Add starting messages
     engine.add_message(
