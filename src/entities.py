@@ -26,16 +26,28 @@ class Actor(Entity):
 class Player(Actor):
     def __init__(self, x, y):
         super().__init__(x, y, PLAYER, COLOR.DARK_RED, PLAYER_NAME)
-        self.inventory: list[Item] = (
-            []
-        )  # ("Silver Leaf", 3), ("Lemon Fruit", 2), ("Simple Glue", 1)
-        self.xp = 0
+        # 玩家库存示例
+        self.inventory = {
+            "silver_leaf": 5,
+            "lemon": 2,
+            "glowshroom": 10,
+            "moon_dew": 5,
+            "glowing_moss": 3,
+        }
+        self.skills = {
+            "Alchemy": 2,
+            "Herbalism": 1,
+        }
         self.equipped_tool = None
         self.location = "Herb Garden"
         self.tasks = ["Harvest Silver Leaf (3/5)"]
 
     def get_inventory(self):
-        return [item_stack.name for item_stack in self.inventory]
+        item_list = []
+        for item_id, quantity in self.inventory.items():
+            item_name = item_id  # TODO: get_item(item_id).name
+            item_list.append(f"{item_name} x{quantity}")
+        return item_list
 
     def move(self, dx: int, dy: int, game_map) -> dict[str, bool | str | None]:
         """Move the player if the target position is not blocked"""
@@ -66,7 +78,11 @@ class Player(Actor):
         return {"moved": True}
 
     def pick_up(self, item, entities):
-        self.inventory.append(item)
+        """Pick up an item and add it to inventory"""
+        if item.name in self.inventory:
+            self.inventory[item.name] += 1
+        else:
+            self.inventory[item.name] = 1
         entities.remove(item)
         return f"Picked up {item.name}"
 

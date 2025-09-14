@@ -29,6 +29,8 @@ from constants import (
 from entities import Actor, Player
 import colors as COLOR
 from map_gen import GameMap
+from recipe_manager import RecipeManager
+from recipes import load_recipes
 
 
 class MessageLog:
@@ -331,6 +333,8 @@ class Engine:
         self.player: Player | None = None  # Will be set in main
         # Will be initialized after player and map are set
         self.interaction_system: InteractionSystem | None = None
+        self.recipe_manager = RecipeManager()
+        load_recipes(self.recipe_manager)
 
         self.message_log = MessageLog(
             font=self.font, char_size=self.char_size
