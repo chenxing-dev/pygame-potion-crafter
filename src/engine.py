@@ -162,6 +162,27 @@ class InteractionSystem:
         self.cancel_key = "C"  # 默认取消键
         self.cancel_text = "(C)ancel"
 
+        # 定义交互动作
+        self.interaction_types = {
+            "clean": "C",
+            "examine": "E",
+            "harvest": "H",
+            "talk": "T",
+            "use": "U",
+        }
+
+    def get_available_interactions(self):
+        """获取玩家当前位置可用的交互动作"""
+        available = set()
+
+        for action_type, key in self.interaction_types.items():
+            # 检查附近是否有此类可交互对象
+            targets, _ = self.get_nearby_interaction_targets(action_type)
+            if targets:
+                available.add((action_type, key))
+
+        return list(available)
+
     def get_nearby_interaction_targets(self, action_type):
         """获取玩家附近可交互的对象"""
         directions = [(0, 0), (0, -1), (-1, 0), (1, 0), (0, 1)]
@@ -484,14 +505,14 @@ class Engine:
         actions = [("L", "ook"), ("I", "nventory")]
         if not self.interaction_system:
             return actions
-        if self.interaction_system and self.interaction_system.interaction_mode:
+
+        if self.interaction_system.interaction_mode:
             return self.interaction_system.get_interaction_menu_items()
 
-        # 检查附近是否有可Examine对象
-        examine_targets, _ = self.interaction_system.get_nearby_interaction_targets(
-            "examine")
-        if examine_targets:
-            actions.insert(0, ("E", "xamine"))
+        # Add context-sensitive actions
+        available_interactions = self.interaction_system.get_available_interactions()
+        for action, key in available_interactions:
+            actions.insert(0, (key, action[1:]))
 
         return actions
 
@@ -590,11 +611,6 @@ class Engine:
                     elif isinstance(message, str):
                         self.add_message(message)
 
-            elif event.key == pygame.K_e:
-                # Examine action
-                if self.interaction_system:
-                    self.interaction_system.start_interaction("examine")
-
             elif event.key == pygame.K_i:
                 # Opening inventory does not pass a turn
                 self.show_inventory(player)
@@ -603,6 +619,15 @@ class Engine:
             elif event.key == pygame.K_l:  # 查看
                 self.look_around()
                 continue
+
+            elif self.interaction_system:
+                # Check for context-sensitive actions
+                available_interactions = self.interaction_system.get_available_interactions()
+
+                for action_type, key in available_interactions:
+                    if event.key == pygame.key.key_code(key):
+                        self.interaction_system.start_interaction(action_type)
+                        break
 
             # After handling a player action that passes a turn,
             # advance the world state

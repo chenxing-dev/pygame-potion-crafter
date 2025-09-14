@@ -1,4 +1,3 @@
-- [x] interacting with objects.
 - [ ] The data structure for crafting recipes.
 
 # 实现
@@ -6,15 +5,12 @@
 1. 交互设计
    - 消息日志支持滚动以查看历史消息（使用Page Up/Page Down键）。
    - 操作菜单根据上下文动态更新显示的可操作命令。
-     - 只检测上、下、左、右四个方向和当前位置
-     - 当没有可交互对象时，显示: (L)ook | (I)nventory
-     - 当有可检查对象时，显示: (E)xamine | (L)ook | (I)nventory
      - 当有可收获对象时，显示: (H)arvest | (L)ook | (I)nventory
      - 按下'E'键进入检查模式
-     - 显示所有附近可检查对象，如: (B)rewing Tower | (S)ilver Leaf | (C)ancel
-     - 为每个检测到的对象生成唯一的选择键
-     - 按下对应字母键直接选择对象
-     - 按下'C'键取消交互
+     - 显示所有附近可检查对象，如: 
+     - (B)rewing Tower | (S)ilver Leaf | (C)ancel
+     - (B)rewing Tower | (R)usted Pipe | (A)nvil | (C)ancel
+     - (C)rystal | (B)ack
 
 # 优先开发清单
 
