@@ -70,6 +70,21 @@ class MessageLog:
             self.messages.append(("", color))
             return
 
+        # 分割消息以适应宽度
+        lines = self.split_message(message)
+
+        # Add all lines to message log
+        for line in lines:
+            self.messages.append((line, color))
+
+        # Keep message log manageable
+        if len(self.messages) > self.max_lines:
+            self.messages = self.messages[-self.max_lines:]
+
+        # Auto-scroll to bottom
+        self.scroll_to_bottom()
+
+    def split_message(self, message):
         # Split long messages into chunks that fit in the message area
         max_chars = GRID_WIDTH  # Max characters per line
         words = message.split()
@@ -103,16 +118,7 @@ class MessageLog:
         if current_line:
             lines.append(current_line)
 
-        # Add all lines to message log
-        for line in lines:
-            self.messages.append((line, color))
-
-        # Keep message log manageable
-        if len(self.messages) > self.max_lines:
-            self.messages = self.messages[-self.max_lines:]
-
-        # Auto-scroll to bottom
-        self.scroll_to_bottom()
+        return lines
 
     def scroll_to_bottom(self):
         """Scroll to the bottom of the message log"""
@@ -124,8 +130,18 @@ class MessageLog:
 
     def scroll_down(self):
         """Scroll down one line"""
-        self.scroll_offset = min(len(self.messages) - self.max_lines,
+        self.scroll_offset = min(len(self.messages) - MSG_HEIGHT,
                                  self.scroll_offset + 1)
+
+    def handle_input(self, key):
+        """处理滚动输入"""
+        if key == pygame.K_PAGEUP:
+            self.scroll_up()
+            return True
+        elif key == pygame.K_PAGEDOWN:
+            self.scroll_down()
+            return True
+        return False
 
     def render(self, container):
         """Render messages with colored keywords"""
@@ -588,6 +604,10 @@ class Engine:
             if event.key == pygame.K_ESCAPE:
                 keep_running = False
                 break
+
+            # 检查消息日志滚动
+            if self.message_log.handle_input(event.key):
+                continue
 
             # 如果在交互模式下，让交互系统处理输入
             if self.interaction_system and self.interaction_system.interaction_mode:
