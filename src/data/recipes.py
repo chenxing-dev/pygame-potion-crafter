@@ -1,5 +1,4 @@
-# 创建配方管理器实例
-from recipe_manager import CraftingRecipe, Ingredient, RecipeManager
+from crafting import CraftingRecipe, Ingredient, RecipeManager
 
 
 def load_recipes(recipe_manager: RecipeManager):

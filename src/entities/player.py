@@ -1,26 +1,8 @@
-from typing import Callable
-from constants import PLAYER, PLAYER_NAME
 import colors as COLOR
-
-
-class Entity:
-    def __init__(self, x, y, char, color, name, blocks=False):
-        self.x = x
-        self.y = y
-        self.char = char
-        self.color = color
-        self.name = name
-        self.blocks = blocks
-
-
-class Actor(Entity):
-    def __init__(self, x, y, char, color, name):
-        super().__init__(x, y, char, color, name, blocks=True)
-        self.alive = True
-
-    def greet(self, target):
-        """Greet another actor and return result message"""
-        return f"{self.name} greets {target.name}!"
+from constants import PLAYER, PLAYER_NAME
+from entities.actor import Actor
+from entities.door import Door
+from entities.item import Item
 
 
 class Player(Actor):
@@ -85,36 +67,3 @@ class Player(Actor):
             self.inventory[item.name] = 1
         entities.remove(item)
         return f"Picked up {item.name}"
-
-
-class Item(Entity):
-    def __init__(self, x, y, char, color, name):
-        super().__init__(x, y, char, color, name, blocks=False)
-
-
-class Tool(Item):
-    pass
-
-
-class Door(Entity):
-    def __init__(self, x, y, char, color, name):
-        super().__init__(x, y, char, color, name)
-
-    def use(self, entities):
-        entities.remove(self)
-        return f"{PLAYER_NAME} opens the door."
-
-
-class Activator(Entity):
-    def __init__(self, x, y, char, color, name, actions: dict[str, Callable]):
-        super().__init__(x, y, char, color, name)
-        self.actions = actions
-
-    def get_actions(self):
-        return list(self.actions.keys())
-
-    def activate(self, action_name: str, game):
-        action = self.actions.get(action_name)
-        if action:
-            return action(self, game)
-        return None
