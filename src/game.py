@@ -22,9 +22,10 @@ from config.settings import (
     OUTER_PADDING,
 )
 from config import COLOR, WALL, FLOOR
-from data.recipes import load_recipes
+from data import ObjectManager
 from crafting import RecipeManager
 from entities import Actor, Player
+from entities.door import Door
 from ui import MessageLog, InteractionSystem
 from world import GameMap
 
@@ -66,6 +67,9 @@ class Game:
         self.surfaces["padding_container"] = pygame.Surface(
             (pad_w, pad_h), pygame.SRCALPHA).convert_alpha()
 
+        # 初始化对象管理器
+        self.object_manager = ObjectManager()
+
         # 游戏组件（将在 main 中设置）
         self.player: Optional[Player] = None
         self.world: Optional[GameMap] = None
@@ -93,6 +97,42 @@ class Game:
             "#.................#   #..........#",
             "###################   ############",
         ]
+
+    def initialize_game(self):
+        """初始化所有游戏组件"""
+        # 1. Initialize the game map first
+        self.world = GameMap(self.map_data)
+
+        # 2. Initialize the player at the starting position found in the map
+        self.player = Player(*self.world.player_start)
+
+        # 3. 初始化其他系统
+        self.recipe_manager = RecipeManager()
+        self.interaction_system = InteractionSystem(self)
+
+        # 4. 添加对象到游戏中
+        self.add_objects_to_game()
+
+        # Add starting messages
+        self.add_message(
+            "> You enter the quiet workshop. Dust motes dance in the sunlight."
+        )
+        self.add_message(
+            "> The main brewing station stands silent, its pipes clogged with dark residue.",
+            COLOR.DARK_RED,
+        )
+
+        # 初始化玩家库存
+        self.player.inventory.add_item("silver_leaf", 5)
+        self.player.inventory.add_item("lemon", 2)
+        self.player.inventory.add_item("glowshroom", 10)
+        self.player.inventory.add_item("moon_dew", 5)
+        self.player.inventory.add_item("glowing_moss", 3)
+
+    def add_objects_to_game(self):
+        """向游戏添加对象"""
+        self.object_manager.add_object(
+            Door(door_id="door", name="Door"))
 
     def change_state(self, new_state):
         """Change the current game state"""
@@ -139,15 +179,30 @@ class Game:
 
     def render_main_menu(self):
         """Render the main menu"""
-        self.render_header()
-        # TODO: instruction = self.font.render("Press ENTER to begin", True, self.colors["text"])
+        # Draw container
+        main_menu_x, main_menu_y = 0, 0
+        main_menu_bg = pygame.Surface(
+            (GRID_WIDTH * self.char_size[0],
+             GRID_HEIGHT * self.char_size[1]),
+            pygame.SRCALPHA,
+        )
+        # Display game title and instructions
+        self.render_colored_text(
+            main_menu_bg, GAME_TITLE, (0, 0))
+        self.render_colored_text(
+            main_menu_bg, "Press ENTER to begin", (0, self.char_size[1]))
+        self.surfaces["container"].blit(
+            main_menu_bg, (main_menu_x, main_menu_y))
 
     def render_playing(self):
         """Render the playing state"""
         # Render game world
         if self.world and self.player:
             self.world.render(
-                self.surfaces["container"], self.char_size, self.font, self.player)
+                self.surfaces["container"],
+                self.char_size,
+                self.font,
+                self.player)
 
         # Render UI elements
         self.render_ui_panel()
@@ -286,32 +341,6 @@ class Game:
             current_x += (len(separator) + 1) * self.char_size[0]
 
         self.surfaces["container"].blit(menu_bg, (menu_x, menu_y))
-
-    def initialize_game(self):
-        """Initialize game state"""
-        # 1. Initialize the game map first
-        self.world = GameMap(self.map_data)
-        # 2. Initialize the player at the starting position found in the map
-        self.player = Player(*self.world.player_start)
-        self.recipe_manager = RecipeManager()
-        load_recipes(self.recipe_manager)
-        self.interaction_system = InteractionSystem(self)
-
-        # Add starting messages
-        self.add_message(
-            "> You enter the quiet workshop. Dust motes dance in the sunlight."
-        )
-        self.add_message(
-            "> The main brewing station stands silent, its pipes clogged with dark residue.",
-            COLOR.DARK_RED,
-        )
-
-        # 初始化玩家库存
-        self.player.inventory.add_item("silver_leaf", 5)
-        self.player.inventory.add_item("lemon", 2)
-        self.player.inventory.add_item("glowshroom", 10)
-        self.player.inventory.add_item("moon_dew", 5)
-        self.player.inventory.add_item("glowing_moss", 3)
 
     def handle_events(self):
         """Handle user input events"""

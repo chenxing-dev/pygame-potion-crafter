@@ -27,8 +27,7 @@ class GameMap:
                          char: str, color: tuple, description: str = "",
                          blocks: bool = False):
         """创建Reference并添加到地图"""
-        reference = Reference(ref_id, name, x, y, char,
-                              color, description, blocks)
+        reference = Reference(x, y, object_data=)
         self.references.append(reference)
         return reference
 

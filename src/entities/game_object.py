@@ -16,9 +16,9 @@ class ObjectType(Enum):
 class GameObject:
     """所有游戏对象的基类"""
     id: str
-    name: str
-    description: str = ""
-    object_type: str = "actor"
+    object_type: ObjectType
+    blocks: bool = False
+    interactable: bool = False
 
     def __str__(self):
-        return self.name
+        return self.id
