@@ -1,27 +1,34 @@
-from typing import List
+from typing import List, Tuple, TYPE_CHECKING
 import numpy as np
+import pygame
 from config import COLOR, WALL, FLOOR, PLAYER, MAP_WIDTH, MAP_HEIGHT
-from entities import Reference
+from entities.reference import Reference
 from data import activator_registry
+
+if TYPE_CHECKING:
+    from entities.player import Player
 
 
 class GameMap:
-    def __init__(self):
+    def __init__(self, map_strings: List[str]):
         self.width, self.height = MAP_WIDTH, MAP_HEIGHT
         self.tiles = np.full((self.width, self.height),
                              fill_value=" ", dtype=str)
-
-        self.references: List[Reference] = []  # Store references here
-        self.player_start = (3, 3)  # default
         self.fov = np.zeros((self.width, self.height), dtype=bool)
         self.explored = np.zeros((self.width, self.height), dtype=bool)
 
+        self.references: List[Reference] = []  # Store references here
+        self.player_start = (3, 3)  # default starting position
+
+        # Load the map from the provided strings
+        self.load_from_strings(map_strings)
+
     def create_reference(self, ref_id: str, name: str, x: int, y: int,
                          char: str, color: tuple, description: str = "",
-                         blocks: bool = False, interactable: bool = False):
+                         blocks: bool = False):
         """创建Reference并添加到地图"""
         reference = Reference(ref_id, name, x, y, char,
-                              color, description, blocks, interactable)
+                              color, description, blocks)
         self.references.append(reference)
         return reference
 
@@ -37,7 +44,6 @@ class GameMap:
             ref_id, activator.name, x, y, char, color,
             description or activator.description,
             blocks=True,  # 激活器通常阻挡移动
-            interactable=True  # 激活器可交互
         )
 
         # 存储激活器ID以便后续查找
@@ -58,19 +64,19 @@ class GameMap:
                         self.tiles[x, y] = char
                         self.create_reference(
                             f"wall_{x}_{y}", "Wall", x, y, WALL, COLOR.INK,
-                            "A solid stone wall.", True, False
+                            "A solid stone wall.", True
                         )
                     elif char == FLOOR:
                         self.tiles[x, y] = char
                         self.create_reference(
                             f"floor_{x}_{y}", "Floor", x, y, FLOOR, COLOR.LIGHT_TAUPE,
-                            "A stone floor.", False, False
+                            "A stone floor.", False
                         )
                     else:
                         self.tiles[x, y] = FLOOR  # Entities on floor tiles
                         self.create_reference(
                             f"floor_{x}_{y}", "Floor", x, y, FLOOR, COLOR.LIGHT_TAUPE,
-                            "A stone floor.", False, False
+                            "A stone floor.", False
                         )
 
                     # Place entities
@@ -84,7 +90,7 @@ class GameMap:
                     elif char == 'H':  # 草药
                         self.create_reference(
                             "silver_leaf", "Herb", x, y, "%", COLOR.DARK_GREEN,
-                            "A medicinal herb.", False, True
+                            "A medicinal herb.", False
                         )
 
     def get_reference_at(self, x: int, y: int):
@@ -225,3 +231,75 @@ class GameMap:
 
         # No path found
         return (start_x, start_y)
+
+    def render(self, surface: pygame.Surface, char_size: Tuple[int, int], font: pygame.font.Font, player: 'Player'):
+        """Render the game map and entities"""
+        map_x, map_y = 0, char_size[1]
+        map_bg = pygame.Surface(
+            (MAP_WIDTH * char_size[0], MAP_HEIGHT * char_size[1]),
+            pygame.SRCALPHA,
+        )
+
+        # Draw tiles
+        for x in range(self.width):
+            for y in range(self.height):
+                # Get the character and color for this tile
+                char = self.tiles[x, y]
+                color = COLOR.LIGHT_TAUPE if char == FLOOR else COLOR.INK
+
+                # Render the tile character
+                text_surface = font.render(char, True, color)
+                map_bg.blit(
+                    text_surface,
+                    (x * char_size[0], y * char_size[1]),
+                )
+
+        # Draw entities
+
+        # Create a set of positions occupied by blocking entities
+        blocking_positions = set()
+        for entity in self.references:
+            if entity.blocks and entity != player:
+                blocking_positions.add((entity.x, entity.y))
+
+        # Draw non-blocking entities only if not covered by blocking entities
+        for entity in self.references:
+            if not entity.blocks and entity != player:
+                if (entity.x, entity.y) not in blocking_positions:
+                    text = font.render(
+                        entity.char, True, entity.color)
+                    map_bg.blit(
+                        text,
+                        (
+                            entity.x * char_size[0],
+                            entity.y * char_size[1],
+                        ),
+                    )
+
+        # Second: Draw blocking entities (creatures)
+        for entity in self.references:
+            if entity.blocks and entity != player:
+
+                # Draw creatures
+                color = entity.color
+
+                text = font.render(entity.char, True, color)
+                map_bg.blit(
+                    text,
+                    (
+                        entity.x * char_size[0],
+                        entity.y * char_size[1],
+                    ),
+                )
+
+        # Third: Draw player (always on top)
+        player_text = font.render(PLAYER, True, player.color)
+        map_bg.blit(
+            player_text,
+            (
+                player.x * char_size[0],
+                player.y * char_size[1],
+            ),
+        )
+
+        surface.blit(map_bg, (map_x, map_y))

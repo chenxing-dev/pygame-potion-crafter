@@ -1,11 +1,13 @@
-from typing import List
+from typing import List, TYPE_CHECKING
 import config.colors as COLOR
 from config.symbols import PLAYER, PLAYER_NAME
 from entities.actor import Actor
 from entities.door import Door
 from entities.item import Item
 from entities.reference import Reference
-from world import GameMap
+
+if TYPE_CHECKING:
+    from world.game_map import GameMap
 
 
 class Player(Actor):

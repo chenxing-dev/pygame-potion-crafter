@@ -1,5 +1,5 @@
 from typing import Dict, Optional
-from entities import Item
+from entities.item import Item
 
 
 class ItemRegistry:

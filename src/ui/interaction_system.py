@@ -1,12 +1,15 @@
 
-from typing import Tuple
+from typing import TYPE_CHECKING, List, Tuple
 import pygame
+
+if TYPE_CHECKING:
+    from game import Game
 
 
 class InteractionSystem:
-    def __init__(self, game):
+    def __init__(self, game: 'Game'):
         self.game = game
-        self.game_map = game.game_map
+        self.world = game.world
         self.interaction_mode = None
         self.available_targets = []
         self.cancel_key = "C"  # 默认取消键
@@ -35,8 +38,11 @@ class InteractionSystem:
 
         return list(available)
 
-    def get_nearby_interaction_targets(self, action_type):
+    def get_nearby_interaction_targets(self, action_type: str) -> Tuple[List[dict], set]:
         """获取玩家附近可交互的对象"""
+        if not self.world or not self.game.player:
+            return [], set()
+
         directions = [(0, 0), (0, -1), (-1, 0), (1, 0), (0, 1)]
         # Check all 4 directions around player plus current position
         targets = []
@@ -46,15 +52,15 @@ class InteractionSystem:
             x, y = self.game.player.x + dx, self.game.player.y + dy
 
             # Check for objects at this position
-            for obj in self.game_map.entities:
-                if obj.x == x and obj.y == y:
+            for ref in self.world.references:
+                if ref.x == x and ref.y == y:
                     # Check if the object has a get_actions method
-                    if hasattr(obj, "get_actions") and action_type in obj.get_actions():
+                    if hasattr(ref, "get_actions") and action_type in ref.object.get_actions():
                         # 为每个对象生成唯一的选择键
-                        key = self.get_unique_key(obj.name, targets)
+                        key = self.get_unique_key(ref.name, targets)
                         used_keys.add(key)
-                        targets.append({"key": key, "object": obj,
-                                        "position": (x, y), "name": obj.name})
+                        targets.append({"key": key, "object": ref,
+                                        "position": (x, y), "name": ref.name})
 
         return targets, used_keys
 

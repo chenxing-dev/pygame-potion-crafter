@@ -1,9 +1,11 @@
-from entities.entity import Entity
+from entities.reference import Reference
 
 
-class Door(Entity):
-    def __init__(self, e_id, x, y, char, color, name):
-        super().__init__(e_id, x, y, char, color, name, blocks=True)
+class Door(Reference):
+    def __init__(self, door_id, name, x, y, char, color, description="A sturdy door.", locked=False, key_id=None):
+        super().__init__(door_id, name, x, y, char, color, description, blocks=True)
+        self.locked = locked
+        self.key_id = key_id  # The ID of the key item that can unlock this door
 
     def activate(self):
         """Open the door"""

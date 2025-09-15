@@ -7,11 +7,11 @@ class RecipeManager:
     """管理所有制作配方"""
 
     def __init__(self):
-        self.recipes: Dict[str, CraftingRecipe] = {}
-        self.recipes_by_category: Dict[str, List[CraftingRecipe]] = {}
-        self.recipes_by_tag: Dict[str, List[CraftingRecipe]] = {}
+        self.recipes: Dict[str, 'CraftingRecipe'] = {}
+        self.recipes_by_category: Dict[str, List['CraftingRecipe']] = {}
+        self.recipes_by_tag: Dict[str, List['CraftingRecipe']] = {}
 
-    def add_recipe(self, recipe: CraftingRecipe):
+    def add_recipe(self, recipe: 'CraftingRecipe'):
         """添加新配方"""
         self.recipes[recipe.id] = recipe
         # 按类别索引配方
