@@ -1,5 +1,4 @@
 """游戏入口点，初始化游戏并启动主循环"""
-# pylint:disable=
 import pygame
 from engine import Engine, InteractionSystem
 from entities import Player
