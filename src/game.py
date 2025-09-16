@@ -1,4 +1,4 @@
-"""包含Engine类，处理游戏主循环和渲染"""
+"""主游戏循环与状态管理"""
 from enum import Enum, auto
 from typing import Optional, Tuple
 import math
@@ -24,8 +24,7 @@ from config.settings import (
 from config import COLOR, WALL, FLOOR
 from data import ObjectManager
 from crafting import RecipeManager
-from entities import Actor, Player
-from entities.door import Door
+from entities import Door, MobilePlayer, NPC, Player, Reference, Item, Tool
 from ui import MessageLog, InteractionSystem
 from world import GameMap
 
@@ -48,7 +47,7 @@ class Game:
         self.running = True
 
         # Initialize game states
-        self.state = GameState.MAIN_MENU
+        self.state = GameState.PLAYING
         self.previous_state: Optional[GameState] = None
 
         # 字体与字符尺寸
@@ -71,9 +70,10 @@ class Game:
         self.object_manager = ObjectManager()
 
         # 游戏组件（将在 main 中设置）
-        self.player: Optional[Player] = None
+        self.player: Optional[Reference[Player]] = None
+        self.mobile_player: Optional[MobilePlayer] = None
         self.world: Optional[GameMap] = None
-        self.world_state = {"day": 1}
+        self.world_state: dict = {"day": 1, "tasks": []}
         self.recipe_manager = None
         self.journal = None
         self.message_log = MessageLog(font=self.font, char_size=self.char_size)
@@ -104,11 +104,12 @@ class Game:
         self.world = GameMap(self.map_data)
 
         # 2. Initialize the player at the starting position found in the map
-        self.player = Player(*self.world.player_start)
+        self.create_player(*self.world.player_start)
 
         # 3. 初始化其他系统
         self.recipe_manager = RecipeManager()
         self.interaction_system = InteractionSystem(self)
+        self.world_state["tasks"] = ["Harvest Silver Leaf (3/5)"]  # TODO: 临时任务
 
         # 4. 添加对象到游戏中
         self.add_objects_to_game()
@@ -123,16 +124,53 @@ class Game:
         )
 
         # 初始化玩家库存
-        self.player.inventory.add_item("silver_leaf", 5)
-        self.player.inventory.add_item("lemon", 2)
-        self.player.inventory.add_item("glowshroom", 10)
-        self.player.inventory.add_item("moon_dew", 5)
-        self.player.inventory.add_item("glowing_moss", 3)
+        self.add_item("silver_leaf", 5)
+        self.add_item("lemon", 2)
+        self.add_item("glowshroom", 10)
+        self.add_item("moon_dew", 5)
+        self.add_item("glowing_moss", 3)
+
+    def create_reference(self, entity, x: int, y: int) -> Reference:
+        """创建实体引用"""
+        if self.world is None:
+            raise ValueError(
+                "World must be initialized before creating references.")
+        reference = Reference(x, y, entity)
+        self.world.references.append(reference)
+        return reference
+
+    def create_player(self, x: int, y: int):
+        """创建玩家实体并返回其引用"""
+        player_entity = Player()
+        self.player = self.create_reference(player_entity, x, y)
+        self.mobile_player = MobilePlayer(x, y, self.player)
+        self.player.mobile = self.mobile_player
+
+    def add_item(self, item_id: str, quantity: int = 1):
+        """向玩家库存添加物品"""
+        if self.player:
+            self.player.object_data.inventory.add_item(item_id, quantity)
 
     def add_objects_to_game(self):
         """向游戏添加对象"""
         self.object_manager.add_object(
             Door(door_id="door", name="Door"))
+
+        # 注册物品
+        self.object_manager.add_object(
+            Item("silver_leaf", "Silver Leaf", "%", COLOR.DARK_GREEN))
+        self.object_manager.add_object(
+            Item("lemon_fruit", "Lemon Fruit", "%", COLOR.DARK_GREEN))
+        self.object_manager.add_object(
+            Item("glowshroom", "Glowshroom", "%", COLOR.DARK_GREEN))
+        self.object_manager.add_object(
+            Item("moon_dew", "Moon Dew", "%", COLOR.DARK_GREEN))
+        self.object_manager.add_object(
+            Item("glowing_moss", "Glowing Moss", "%", COLOR.DARK_GREEN))
+        self.object_manager.add_object(
+            Item("cleaning_gloop", "Cleaning Gloop", "!", COLOR.DARK_GREEN))
+        self.object_manager.add_object(
+            Tool("pruning_shears", "Pruning Shears", "(", COLOR.INK))
 
     def change_state(self, new_state):
         """Change the current game state"""
@@ -225,7 +263,7 @@ class Game:
     def render_ui_panel(self):
         """Render the UI panel for the playing state"""
         self.render_header()
-        self.render_status_panel(self.player)
+        self.render_status_panel()
         self.message_log.render(self.surfaces["container"])
         self.render_action_menu()
 
@@ -244,7 +282,7 @@ class Game:
 
         self.surfaces["container"].blit(header_bg, (header_x, header_y))
 
-    def render_status_panel(self, player):
+    def render_status_panel(self):
         """Render the status panel"""
         # Draw UI panel background
         ui_x, ui_y = MAP_WIDTH * self.char_size[0], self.char_size[1]
@@ -252,18 +290,19 @@ class Game:
             (UI_WIDTH * self.char_size[0], UI_HEIGHT * self.char_size[1]),
             pygame.SRCALPHA,
         )
-
+        if not self.player or not self.mobile_player:
+            return
         # Player stats
         status_y = 0
         status = [
             "Location: ",
-            (player.location, COLOR.DARK_GREEN),
+            (self.mobile_player.location, COLOR.DARK_GREEN),
             "",
             "Task:",
-            (player.tasks[0], COLOR.DARK_GREEN),
+            (self.world_state["tasks"][0], COLOR.DARK_GREEN),
             "",
             "Inventory:",
-            *player.get_inventory(),
+            *self.player.object_data.get_inventory_display(),
         ]
 
         # Draw stats with colored keywords
@@ -405,9 +444,9 @@ class Game:
             pygame.K_d: (1, 0),
         }
 
-        if event.key in move_keys and self.player and self.world:
+        if event.key in move_keys and self.player and self.player.mobile:
             dx, dy = move_keys[event.key]
-            result = self.player.move(dx, dy, self.world)
+            result = self.player.mobile.move(dx, dy, self)
             if result:  # Either moved or interacted
                 turn_passed = True
                 message = result.get("message")
@@ -418,13 +457,13 @@ class Game:
 
         elif event.key == pygame.K_i:
             if self.player:
-                self.show_inventory(self.player)
-                # TODO: self.change_state(GameState.INVENTORY)
+                self.change_state(GameState.INVENTORY)
             return
 
         elif event.key == pygame.K_j:
-            # TODO: self.change_state(GameState.JOURNAL)
-            pass
+            if self.player:
+                self.change_state(GameState.JOURNAL)
+            return
 
         elif event.key == pygame.K_l:  # 查看
             self.look_around()
@@ -443,7 +482,7 @@ class Game:
         # advance the world state
         if turn_passed and self.world and self.player:
             self.world.compute_fov(self.player.x, self.player.y)
-            self.handle_world_turns(self.player, self.world)
+            self.handle_world_turns()
 
         return self.running
 
@@ -479,46 +518,55 @@ class Game:
         self.add_message("Inventory:")
         self.add_message(player.get_inventory_display())
 
-    def handle_world_turns(self, player, game_map):
+    def handle_world_turns(self):
         """Process world turns after player moves"""
+        if not self.world or not self.player:
+            return
+
         messages = []
 
-        for entity in game_map.entities[
-            :
-        ]:  # Use slice copy to avoid modification issues
-            if isinstance(entity, Actor) and entity is not player:
-                # Calculate distance to player
-                distance = math.sqrt(
-                    (entity.x - player.x) ** 2 + (entity.y - player.y) ** 2
-                )
+        # iterate over a copy to avoid mutation issues
+        for ref in list(self.world.references):
+            # ensure the referenced object is an NPC and it's not the player reference
+            if not isinstance(ref.object_data, NPC) or ref is self.player:
+                continue
 
-                if distance <= 8:  # Detection range
-                    if distance <= 1:  # Check if player is adjacent
-                        # Greets player
-                        result = entity.greet(player)
-                        messages.append(result)
-                    else:
-                        # Move toward player using pathfinding
-                        new_x, new_y = game_map.find_path(
-                            entity.x, entity.y, player.x, player.y, game_map.entities
-                        )
+            # ensure a Mobile exists and narrow its type for the checker
+            if not hasattr(ref, "mobile") or ref.mobile is None:
+                continue
 
-                        # Only move if not blocked
-                        if not game_map.is_blocked(new_x, new_y):
-                            # Check if position is occupied
-                            occupied = False
-                            for other in game_map.entities:
-                                if (
-                                    other.blocks
-                                    and other != entity
-                                    and other.x == new_x
-                                    and other.y == new_y
-                                ):
-                                    occupied = True
-                                    break
+            # Calculate distance to player
+            distance = math.sqrt(
+                (ref.x - self.player.x) ** 2 + (ref.y - self.player.y) ** 2
+            )
 
-                            if not occupied:
-                                entity.x, entity.y = new_x, new_y
+            if distance <= 8:  # Detection range
+                if distance <= 1:  # Check if player is adjacent
+                    # Greets player
+                    result = ref.mobile.greet(self.player)
+                    messages.append(result)
+                else:
+                    # Move toward player using pathfinding
+                    new_x, new_y = self.world.find_path(
+                        ref.x, ref.y, self.player.x, self.player.y, self.world.references
+                    )
+
+                    # Only move if not blocked
+                    if not self.world.is_blocked(new_x, new_y):
+                        # Check if position is occupied
+                        occupied = False
+                        for other in self.world.references:
+                            if (
+                                other.object_data.blocks
+                                and other != ref
+                                and other.x == new_x
+                                and other.y == new_y
+                            ):
+                                occupied = True
+                                break
+
+                        if not occupied:
+                            ref.x, ref.y = new_x, new_y
 
         # Add messages to log
         for msg, color in messages:

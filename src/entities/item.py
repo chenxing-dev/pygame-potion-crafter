@@ -1,14 +1,15 @@
-from entities.game_object import GameObject
+from entities.physical_object import PhysicalObject, ObjectType
 
 
-class Item(GameObject):
+class Item(PhysicalObject):
     """物品类，可被拾取和存储在库存中"""
 
-    def __init__(self, item_id: str, name: str, description: str = "", stackable: bool = True, max_stack: int = 99):
-        super().__init__(item_id, name, description)
+    def __init__(self, item_id: str, name: str, char: str, color: tuple):
+        super().__init__(item_id, object_type=ObjectType.ITEM, blocks=False, interactable=True)
         # 物品不存储位置信息，当它们在地图上时，会有一个对应的Reference对象
-        self.stackable = stackable
-        self.max_stack = max_stack
+        self.name = name
+        self.char = char
+        self.color = color
 
     def __str__(self):
         return self.name

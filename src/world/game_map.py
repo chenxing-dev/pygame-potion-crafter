@@ -1,11 +1,15 @@
-from typing import List, Tuple, TYPE_CHECKING
+from typing import List, Tuple, TYPE_CHECKING, Union
 import numpy as np
 import pygame
 from config import COLOR, WALL, FLOOR, PLAYER, MAP_WIDTH, MAP_HEIGHT
 from entities.reference import Reference
-from data import activator_registry
+from entities.activator import Activator
+from entities.static import Static
+from entities.item import Item
 
 if TYPE_CHECKING:
+    from entities.physical_object import PhysicalObject
+    from entities.npc import NPC
     from entities.player import Player
 
 
@@ -23,31 +27,10 @@ class GameMap:
         # Load the map from the provided strings
         self.load_from_strings(map_strings)
 
-    def create_reference(self, ref_id: str, name: str, x: int, y: int,
-                         char: str, color: tuple, description: str = "",
-                         blocks: bool = False):
+    def create_reference(self, object_data: 'Union[PhysicalObject, Item, Activator, Static, Player, NPC]', position: Tuple[int, int]):
         """创建Reference并添加到地图"""
-        reference = Reference(x, y, object_data=)
+        reference = Reference(*position, object_data=object_data)
         self.references.append(reference)
-        return reference
-
-    def create_activator_reference(self, activator_id: str, x: int, y: int,
-                                   char: str, color: tuple, description: str = ""):
-        """创建激活器参照物"""
-        activator = activator_registry.get_activator(activator_id)
-        if not activator:
-            return None
-
-        ref_id = f"{activator_id}_{x}_{y}"
-        reference = self.create_reference(
-            ref_id, activator.name, x, y, char, color,
-            description or activator.description,
-            blocks=True,  # 激活器通常阻挡移动
-        )
-
-        # 存储激活器ID以便后续查找
-        reference.id = activator_id
-
         return reference
 
     def load_from_strings(self, map_strings: list):
@@ -55,42 +38,33 @@ class GameMap:
         # Convert text map to grid
         for y, row in enumerate(map_strings):
             for x, char in enumerate(row):
-                if x < self.width and y < self.height:
+                if self.is_within_bounds(x, y):
                     # Set tile type
                     if char == " ":
                         self.tiles[x, y] = char
                     elif char == WALL:
                         self.tiles[x, y] = char
                         self.create_reference(
-                            f"wall_{x}_{y}", "Wall", x, y, WALL, COLOR.INK,
-                            "A solid stone wall.", True
-                        )
+                            object_data=Static("wall", WALL, COLOR.INK), position=(x, y))
                     elif char == FLOOR:
                         self.tiles[x, y] = char
-                        self.create_reference(
-                            f"floor_{x}_{y}", "Floor", x, y, FLOOR, COLOR.LIGHT_TAUPE,
-                            "A stone floor.", False
-                        )
+                        self.create_reference(object_data=Static(
+                            "floor", FLOOR, COLOR.LIGHT_TAUPE), position=(x, y))
                     else:
                         self.tiles[x, y] = FLOOR  # Entities on floor tiles
-                        self.create_reference(
-                            f"floor_{x}_{y}", "Floor", x, y, FLOOR, COLOR.LIGHT_TAUPE,
-                            "A stone floor.", False
-                        )
+                        self.create_reference(object_data=Static(
+                            "floor", FLOOR, COLOR.LIGHT_TAUPE), position=(x, y))
 
                     # Place entities
                     if char == PLAYER:
                         # This is the player starting position
                         self.player_start = (x, y)
                     elif char == 'B':  # 酿造台
-                        self.create_activator_reference(
-                            "brewing_station", x, y, "B", COLOR.DARK_RED
-                        )
+                        self.create_reference(
+                            object_data=Activator("brewing_station", "Brewing Station", "B", COLOR.DARK_RED), position=(x, y))
                     elif char == 'H':  # 草药
                         self.create_reference(
-                            "silver_leaf", "Herb", x, y, "%", COLOR.DARK_GREEN,
-                            "A medicinal herb.", False
-                        )
+                            object_data=Item("silver_leaf", "Herb", "%", COLOR.DARK_GREEN), position=(x, y))
 
     def get_reference_at(self, x: int, y: int):
         """获取指定位置的参照物"""
@@ -98,6 +72,10 @@ class GameMap:
             if ref.x == x and ref.y == y:
                 return ref
         return None
+
+    def is_within_bounds(self, x, y):
+        """Check if coordinates are within map bounds"""
+        return 0 <= x < self.width and 0 <= y < self.height
 
     def is_blocked(self, x, y):
         """Check if a tile is blocked (wall)"""
@@ -119,7 +97,7 @@ class GameMap:
             for dy in range(-radius, radius + 1):
                 x = player_x + dx
                 y = player_y + dy
-                if 0 <= x < self.width and 0 <= y < self.height:
+                if self.is_within_bounds(x, y):
                     if dx * dx + dy * dy <= radius * radius:
                         self.fov[x, y] = True
                         self.explored[x, y] = True
@@ -175,7 +153,7 @@ class GameMap:
                 nx, ny = current[0] + dx, current[1] + dy
 
                 # Skip if out of bounds or blocked
-                if not (0 <= nx < self.width and 0 <= ny < self.height):
+                if not self.is_within_bounds(nx, ny):
                     continue
                 if self.is_blocked(nx, ny):
                     continue
@@ -231,7 +209,7 @@ class GameMap:
         # No path found
         return (start_x, start_y)
 
-    def render(self, surface: pygame.Surface, char_size: Tuple[int, int], font: pygame.font.Font, player: 'Player'):
+    def render(self, surface: pygame.Surface, char_size: Tuple[int, int], font: pygame.font.Font, player: 'Reference[Player]'):
         """Render the game map and entities"""
         map_x, map_y = 0, char_size[1]
         map_bg = pygame.Surface(
@@ -257,42 +235,42 @@ class GameMap:
 
         # Create a set of positions occupied by blocking entities
         blocking_positions = set()
-        for entity in self.references:
-            if entity.blocks and entity != player:
-                blocking_positions.add((entity.x, entity.y))
+        for ref in self.references:
+            if ref.object_data.blocks and ref != player:
+                blocking_positions.add((ref.x, ref.y))
 
         # Draw non-blocking entities only if not covered by blocking entities
-        for entity in self.references:
-            if not entity.blocks and entity != player:
-                if (entity.x, entity.y) not in blocking_positions:
+        for ref in self.references:
+            if not ref.object_data.blocks and ref != player:
+                if (ref.x, ref.y) not in blocking_positions:
                     text = font.render(
-                        entity.char, True, entity.color)
+                        ref.object_data.char, True, ref.object_data.color)
                     map_bg.blit(
                         text,
                         (
-                            entity.x * char_size[0],
-                            entity.y * char_size[1],
+                            ref.x * char_size[0],
+                            ref.y * char_size[1],
                         ),
                     )
 
         # Second: Draw blocking entities (creatures)
-        for entity in self.references:
-            if entity.blocks and entity != player:
+        for ref in self.references:
+            if ref.object_data.blocks and ref != player:
 
                 # Draw creatures
-                color = entity.color
+                color = ref.object_data.color
 
-                text = font.render(entity.char, True, color)
+                text = font.render(ref.object_data.char, True, color)
                 map_bg.blit(
                     text,
                     (
-                        entity.x * char_size[0],
-                        entity.y * char_size[1],
+                        ref.x * char_size[0],
+                        ref.y * char_size[1],
                     ),
                 )
 
         # Third: Draw player (always on top)
-        player_text = font.render(PLAYER, True, player.color)
+        player_text = font.render(PLAYER, True, player.object_data.color)
         map_bg.blit(
             player_text,
             (

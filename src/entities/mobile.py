@@ -1,18 +1,36 @@
-from entities.game_object import GameObject
+from typing import TYPE_CHECKING
 
 
-class Mobile(GameObject):
+if TYPE_CHECKING:
+    from entities.npc import NPC
+    from entities.player import Player
+    from entities.reference import Reference
+    from game import Game
+
+
+class Mobile:
     """可移动的实体，有位置信息且可以移动"""
 
-    def __init__(self, mob_id: str, name: str, x: int, y: int, char: str, color: tuple, description: str = "", blocks: bool = True):
-        super().__init__(mob_id, name, description)
+    def __init__(self, x: int, y: int, reference: 'Reference[NPC|Player]'):
         self.x = x
         self.y = y
-        self.char = char
-        self.color = color
-        self.blocks = blocks
+        self.reference = reference
 
-    def move(self, dx: int, dy: int):
+        self.hp = self.reference.object_data.max_hp or 10
+
+    def move(self, dx: int, dy: int, game: 'Game'):
         """移动实体"""
-        self.x += dx
-        self.y += dy
+        if game.world is None:
+            print("没有游戏世界，无法移动")
+            return
+        new_x = self.x + dx
+        new_y = self.y + dy
+        if game.world.is_within_bounds(new_x, new_y):
+            self.x = new_x
+            self.y = new_y
+        else:
+            print("移动超出边界")
+
+    def greet(self, target: 'Reference') -> str | None:
+        """Greet another actor and return result message"""
+        return f"{self.reference.object_data.name} greets {target.object_data.name}!"
