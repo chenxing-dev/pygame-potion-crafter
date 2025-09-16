@@ -23,3 +23,6 @@ class ObjectManager:
     def get_all_objects(self) -> Dict[str, 'PhysicalObject | Item | Tool']:
         """获取所有注册的物品"""
         return self.objects.copy()
+
+
+object_manager = ObjectManager()

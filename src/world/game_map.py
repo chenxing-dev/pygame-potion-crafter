@@ -40,20 +40,23 @@ class GameMap:
             for x, char in enumerate(row):
                 if self.is_within_bounds(x, y):
                     # Set tile type
+                    wall = Static("wall", WALL, COLOR.INK, blocks=True)
+                    floor = Static(
+                        "floor", FLOOR, COLOR.LIGHT_TAUPE, blocks=False)
                     if char == " ":
                         self.tiles[x, y] = char
                     elif char == WALL:
                         self.tiles[x, y] = char
                         self.create_reference(
-                            object_data=Static("wall", WALL, COLOR.INK), position=(x, y))
+                            object_data=wall, position=(x, y))
                     elif char == FLOOR:
                         self.tiles[x, y] = char
-                        self.create_reference(object_data=Static(
-                            "floor", FLOOR, COLOR.LIGHT_TAUPE), position=(x, y))
+                        self.create_reference(
+                            object_data=floor, position=(x, y))
                     else:
                         self.tiles[x, y] = FLOOR  # Entities on floor tiles
-                        self.create_reference(object_data=Static(
-                            "floor", FLOOR, COLOR.LIGHT_TAUPE), position=(x, y))
+                        self.create_reference(
+                            object_data=floor, position=(x, y))
 
                     # Place entities
                     if char == PLAYER:

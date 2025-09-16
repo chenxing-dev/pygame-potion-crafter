@@ -22,7 +22,7 @@ from config.settings import (
     OUTER_PADDING,
 )
 from config import COLOR, WALL, FLOOR
-from data import ObjectManager
+from data.object_manager import object_manager
 from crafting import RecipeManager
 from entities import Door, MobilePlayer, NPC, Player, Reference, Item, Tool
 from ui import MessageLog, InteractionSystem
@@ -47,7 +47,7 @@ class Game:
         self.running = True
 
         # Initialize game states
-        self.state = GameState.PLAYING
+        self.state = GameState.MAIN_MENU
         self.previous_state: Optional[GameState] = None
 
         # 字体与字符尺寸
@@ -67,7 +67,7 @@ class Game:
             (pad_w, pad_h), pygame.SRCALPHA).convert_alpha()
 
         # 初始化对象管理器
-        self.object_manager = ObjectManager()
+        self.object_manager = object_manager
 
         # 游戏组件（将在 main 中设置）
         self.player: Optional[Reference[Player]] = None
@@ -144,7 +144,6 @@ class Game:
         player_entity = Player()
         self.player = self.create_reference(player_entity, x, y)
         self.mobile_player = MobilePlayer(x, y, self.player)
-        self.player.mobile = self.mobile_player
 
     def add_item(self, item_id: str, quantity: int = 1):
         """向玩家库存添加物品"""
@@ -445,8 +444,11 @@ class Game:
         }
 
         if event.key in move_keys and self.player and self.player.mobile:
+            print(f"Movement key pressed: {event.key}")
             dx, dy = move_keys[event.key]
+            print(f"Attempting to move by ({dx}, {dy})")
             result = self.player.mobile.move(dx, dy, self)
+            print(f"Move result: {result}")
             if result:  # Either moved or interacted
                 turn_passed = True
                 message = result.get("message")

@@ -1,14 +1,12 @@
-from typing import Dict, List, TYPE_CHECKING
+from typing import Dict, List
 from entities.item import Item
-
-if TYPE_CHECKING:
-    from data.object_manager import ObjectManager
+from data.object_manager import object_manager
 
 
 class Inventory:
     """库存系统"""
 
-    def __init__(self, object_manager: 'ObjectManager') -> None:
+    def __init__(self) -> None:
         self.object_manager = object_manager
         self.items: Dict[str, int] = {}  # item_id -> quantity
 

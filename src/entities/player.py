@@ -32,15 +32,20 @@ class MobilePlayer(Mobile):
         self.equipped_tool = None
         self.location = "Herb Garden"
 
+        # Keep the reference's mobile link
+        self.reference.mobile = self
+
     def move(self, dx: int, dy: int, game: 'Game') -> dict[str, bool | str | None]:
         """Move the player if the target position is not blocked"""
         new_x, new_y = self.x + dx, self.y + dy
 
         if game.world is None:
+            print("Game world is not initialized.")
             return {"moved": False}
 
         # Check for wall collision
         if game.world.is_blocked(new_x, new_y):
+            print(f"Movement blocked at ({new_x}, {new_y})")
             return {"moved": False}
 
         # Check for entity interaction at new position
@@ -51,19 +56,27 @@ class MobilePlayer(Mobile):
                 break
 
         if target:
-            if isinstance(target, Door):
-                # Handle door interaction
-                message = target.activate(game)
+            if target.object_data.blocks:
+                if isinstance(target, Door):
+                    # Handle door interaction
+                    message = target.activate(game)
+                    self.x, self.y = new_x, new_y
+                    return {"moved": True, "message": message}
+                if isinstance(target, NPC):
+                    return {"moved": False, "message": self.greet(target)}
+            else:
+                if isinstance(target, Item):
+                    # Move player and sync reference position
+                    self.x, self.y = new_x, new_y
+                    self.reference.x, self.reference.y = new_x, new_y
+                    return {"moved": True, "message": self.pick_up(target, game.world.references)}
+                print(f"Moving onto non-blocking entity at ({new_x}, {new_y})")
                 self.x, self.y = new_x, new_y
-                return {"moved": True, "message": message}
-            if isinstance(target, NPC):
-                return {"moved": False, "message": self.greet(target)}
-            if isinstance(target, Item):
-                # Move player first
-                self.x, self.y = new_x, new_y
-                return {"moved": True, "message": self.pick_up(target, game.world.references)}
-            return {"moved": False}
+                self.reference.x, self.reference.y = new_x, new_y
+
+        # No target entity, just move
         self.x, self.y = new_x, new_y
+        self.reference.x, self.reference.y = new_x, new_y
         return {"moved": True}
 
     def pick_up(self, item_ref: 'Reference[Item]', references: List['Reference']):
