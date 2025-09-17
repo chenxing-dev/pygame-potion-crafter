@@ -212,7 +212,7 @@ class GameMap:
         # No path found
         return (start_x, start_y)
 
-    def render(self, surface: pygame.Surface, char_size: Tuple[int, int], font: pygame.font.Font, player: 'Reference[Player]'):
+    def render(self, surface: pygame.Surface, char_size: Tuple[int, int], font: pygame.font.Font):
         """Render the game map and entities"""
         map_x, map_y = 0, char_size[1]
         map_bg = pygame.Surface(
@@ -220,66 +220,51 @@ class GameMap:
             pygame.SRCALPHA,
         )
 
-        # Draw tiles
-        for x in range(self.width):
-            for y in range(self.height):
-                # Get the character and color for this tile
-                char = self.tiles[x, y]
-                color = COLOR.LIGHT_TAUPE if char == FLOOR else COLOR.INK
-
-                # Render the tile character
-                text_surface = font.render(char, True, color)
+        # Draw references (floor, walls, items, etc.)
+        for ref in self.references:
+            if self.fov[ref.x, ref.y]:
+                text_surface = font.render(
+                    ref.object_data.char, True, ref.object_data.color)
                 map_bg.blit(
                     text_surface,
-                    (x * char_size[0], y * char_size[1]),
+                    (ref.x * char_size[0], ref.y * char_size[1]),
                 )
-
-        # Draw entities
-
-        # Create a set of positions occupied by blocking entities
-        blocking_positions = set()
-        for ref in self.references:
-            if ref.object_data.blocks and ref != player:
-                blocking_positions.add((ref.x, ref.y))
-
-        # Draw non-blocking entities only if not covered by blocking entities
-        for ref in self.references:
-            if not ref.object_data.blocks and ref != player:
-                if (ref.x, ref.y) not in blocking_positions:
-                    text = font.render(
-                        ref.object_data.char, True, ref.object_data.color)
-                    map_bg.blit(
-                        text,
-                        (
-                            ref.x * char_size[0],
-                            ref.y * char_size[1],
-                        ),
-                    )
-
-        # Second: Draw blocking entities (creatures)
-        for ref in self.references:
-            if ref.object_data.blocks and ref != player:
-
-                # Draw creatures
-                color = ref.object_data.color
-
-                text = font.render(ref.object_data.char, True, color)
+            elif self.explored[ref.x, ref.y]:
+                # Dimmed color for explored but not in FOV
+                dimmed_color = (
+                    ref.object_data.color[0] // 2,
+                    ref.object_data.color[1] // 2,
+                    ref.object_data.color[2] // 2,
+                )
+                text_surface = font.render(
+                    ref.object_data.char, True, dimmed_color)
                 map_bg.blit(
-                    text,
-                    (
-                        ref.x * char_size[0],
-                        ref.y * char_size[1],
-                    ),
+                    text_surface,
+                    (ref.x * char_size[0], ref.y * char_size[1]),
                 )
 
-        # Third: Draw player (always on top)
-        player_text = font.render(PLAYER, True, player.object_data.color)
-        map_bg.blit(
-            player_text,
-            (
-                player.x * char_size[0],
-                player.y * char_size[1],
-            ),
-        )
+        # # Draw tiles
+        # for x in range(self.width):
+        #     for y in range(self.height):
+        #         # Get the character and color for this tile
+        #         char = self.tiles[x, y]
+        #         color = COLOR.LIGHT_TAUPE if char == FLOOR else COLOR.INK
+
+        #         # Render the tile character
+        #         text_surface = font.render(char, True, color)
+        #         map_bg.blit(
+        #             text_surface,
+        #             (x * char_size[0], y * char_size[1]),
+        #         )
+
+        # # Third: Draw player (always on top)
+        # player_text = font.render(PLAYER, True, player.object_data.color)
+        # map_bg.blit(
+        #     player_text,
+        #     (
+        #         player.x * char_size[0],
+        #         player.y * char_size[1],
+        #     ),
+        # )
 
         surface.blit(map_bg, (map_x, map_y))

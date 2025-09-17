@@ -26,7 +26,7 @@ from data.object_manager import object_manager
 from crafting import RecipeManager
 from entities import Door, MobilePlayer, NPC, Player, Reference, Item, Tool
 from ui import MessageLog, InteractionSystem
-from world import GameMap
+from world import GameMap, MAP_DATA
 
 
 class GameState(Enum):
@@ -80,23 +80,7 @@ class Game:
         self.interaction_system: Optional[InteractionSystem] = None
 
         # Sample map
-        self.map_data = [
-            "##################################",
-            "#................................#",
-            "#.....#####......................#",
-            "#.....#   #......................#",
-            "#.....+   #......................#",
-            "#.....#####......................#",
-            "#..............B.................#",
-            "#................................#",
-            "#..........@.....................#",
-            "#................................#",
-            "#.................#####..........#",
-            "#.................#   #..........#",
-            "#.................#   #..........#",
-            "#.................#   #..........#",
-            "###################   ############",
-        ]
+        self.map_data = MAP_DATA.strip().splitlines()
 
     def initialize_game(self):
         """初始化所有游戏组件"""
@@ -238,8 +222,8 @@ class Game:
             self.world.render(
                 self.surfaces["container"],
                 self.char_size,
-                self.font,
-                self.player)
+                self.font
+            )
 
         # Render UI elements
         self.render_ui_panel()
