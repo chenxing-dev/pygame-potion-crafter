@@ -235,9 +235,9 @@ class GameMap:
                 )
             elif self.explored[ref.x, ref.y]:
                 dimmed_color = (
-                    color[0] // 2,
-                    color[1] // 2,
-                    color[2] // 2,
+                    min(color[0] + (255 - color[0]) // 2, 255),
+                    min(color[1] + (255 - color[1]) // 2, 255),
+                    min(color[2] + (255 - color[2]) // 2, 255),
                 )
                 text_surface = font.render(
                     char, True, dimmed_color)
@@ -252,4 +252,5 @@ class GameMap:
         for ref in self.references:
             if ref.object_data.object_type == ObjectType.DOOR:
                 ref.object_data = cast('Door', ref.object_data)
+                ref.object_data.blocks = True
                 ref.object_data.char = ref.object_data.close_char

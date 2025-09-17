@@ -23,8 +23,9 @@ from config.settings import (
 )
 from config import COLOR, WALL, FLOOR
 from data.object_manager import object_manager
+from data import create_activators
 from crafting import RecipeManager
-from entities import Door, MobilePlayer, NPC, Player, Reference
+from entities import MobilePlayer, NPC, Player, Reference
 from ui import MessageLog, InteractionSystem
 from world import GameMap, MAP_DATA
 
@@ -138,10 +139,8 @@ class Game:
 
     def add_objects_to_game(self):
         """向游戏添加对象"""
-        self.object_manager.add_object(
-            Door(door_id="door", name="Door"))
-        print(
-            f"Objects in manager: {list(self.object_manager.objects.keys())}")
+        create_activators(self.object_manager)
+        print(f"Objects: {list(self.object_manager.objects.keys())}")
 
     def change_state(self, new_state):
         """Change the current game state"""
