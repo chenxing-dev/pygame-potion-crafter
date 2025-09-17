@@ -24,7 +24,7 @@ from config.settings import (
 from config import COLOR, WALL, FLOOR
 from data.object_manager import object_manager
 from crafting import RecipeManager
-from entities import Door, MobilePlayer, NPC, Player, Reference, Item, Tool
+from entities import Door, MobilePlayer, NPC, Player, Reference
 from ui import MessageLog, InteractionSystem
 from world import GameMap, MAP_DATA
 
@@ -80,25 +80,27 @@ class Game:
         self.interaction_system: Optional[InteractionSystem] = None
 
         # Sample map
-        self.map_data = MAP_DATA.strip().splitlines()
+        self.map_data = str(MAP_DATA.strip()).splitlines()
 
     def initialize_game(self):
         """初始化所有游戏组件"""
-        # 1. Initialize the game map first
+        # 1. 添加对象到游戏中 first
+        self.add_objects_to_game()
+
+        # 2. Initialize the game map
         self.world = GameMap(self.map_data)
 
         # 2. Initialize the player at the starting position found in the map
         self.create_player(*self.world.player_start)
+        if self.player and self.world:
+            self.world.compute_fov(self.player.x, self.player.y)
 
         # 3. 初始化其他系统
         self.recipe_manager = RecipeManager()
         self.interaction_system = InteractionSystem(self)
         self.world_state["tasks"] = ["Harvest Silver Leaf (3/5)"]  # TODO: 临时任务
 
-        # 4. 添加对象到游戏中
-        self.add_objects_to_game()
-
-        # Add starting messages
+        # 4. Add starting messages
         self.add_message(
             "> You enter the quiet workshop. Dust motes dance in the sunlight."
         )
@@ -138,22 +140,8 @@ class Game:
         """向游戏添加对象"""
         self.object_manager.add_object(
             Door(door_id="door", name="Door"))
-
-        # 注册物品
-        self.object_manager.add_object(
-            Item("silver_leaf", "Silver Leaf", "%", COLOR.DARK_GREEN))
-        self.object_manager.add_object(
-            Item("lemon_fruit", "Lemon Fruit", "%", COLOR.DARK_GREEN))
-        self.object_manager.add_object(
-            Item("glowshroom", "Glowshroom", "%", COLOR.DARK_GREEN))
-        self.object_manager.add_object(
-            Item("moon_dew", "Moon Dew", "%", COLOR.DARK_GREEN))
-        self.object_manager.add_object(
-            Item("glowing_moss", "Glowing Moss", "%", COLOR.DARK_GREEN))
-        self.object_manager.add_object(
-            Item("cleaning_gloop", "Cleaning Gloop", "!", COLOR.DARK_GREEN))
-        self.object_manager.add_object(
-            Tool("pruning_shears", "Pruning Shears", "(", COLOR.INK))
+        print(
+            f"Objects in manager: {list(self.object_manager.objects.keys())}")
 
     def change_state(self, new_state):
         """Change the current game state"""

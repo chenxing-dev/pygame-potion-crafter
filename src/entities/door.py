@@ -9,4 +9,5 @@ class Door(PhysicalObject):
         self.name = name
         self.color = color
         self.char = char
-        self.open_char = '/'
+        self.close_char = self.char
+        self.open_char = ' '

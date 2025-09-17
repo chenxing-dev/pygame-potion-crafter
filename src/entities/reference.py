@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Union, TypeVar, Generic
+from typing import TYPE_CHECKING, Optional, Union, TypeVar, Generic
 from entities.activator import Activator
 from entities.door import Door
 
@@ -30,13 +30,18 @@ class Reference(Generic[T_co]):
         # Door specific attributes
         self.locked = False  # 默认门是未锁的
         self.key_id = None  # 默认没有钥匙ID
+        self.destination_map: Optional[str] = None
+        self.destination_pos: Optional[tuple] = None
 
     def __str__(self):
         return self.id
 
     def activate(self, game: 'Game', action_name: str | None = None) -> Union[str, None]:
-        """Open the door"""
+        """激活该引用的对象，执行其动作"""
+        if self.object_data.interactable is False:
+            return
         if isinstance(self.object_data, Door):
+            print("activate door")
             if self.locked:
                 return f"The {self.object_data.name} is locked."
             if not self.object_data.blocks:
@@ -50,4 +55,3 @@ class Reference(Generic[T_co]):
                 if not action_name:
                     action_name = actions[0]  # 默认执行第一个动作
                 return self.object_data.actions[action_name](game)
-        return
