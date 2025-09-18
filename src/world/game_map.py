@@ -1,11 +1,14 @@
-from typing import List, Tuple, TYPE_CHECKING, Union
+from typing import List, Tuple, TYPE_CHECKING, Union, cast
 import numpy as np
 import pygame
-from config import COLOR, WALL, FLOOR, BLANK, PLAYER, MAP_WIDTH, MAP_HEIGHT
+from config import COLOR, WALL, FLOOR, PLAYER, MAP_WIDTH, MAP_HEIGHT
+from data.object_manager import object_manager
+from entities.game_object import ObjectType
 from entities.reference import Reference
 from entities.activator import Activator
 from entities.static import Static
 from entities.item import Item
+from entities.door import Door
 
 if TYPE_CHECKING:
     from entities.physical_object import PhysicalObject
@@ -16,12 +19,11 @@ if TYPE_CHECKING:
 class GameMap:
     def __init__(self, map_strings: List[str]):
         self.width, self.height = MAP_WIDTH, MAP_HEIGHT
-        self.tiles = np.full((self.width, self.height),
-                             fill_value=BLANK, dtype=str)
         self.fov = np.zeros((self.width, self.height), dtype=bool)
         self.explored = np.zeros((self.width, self.height), dtype=bool)
 
-        self.references: List[Reference] = []  # Store references here
+        # Store references here
+        self.references: List[Reference['PhysicalObject']] = []
         self.player_start = (3, 3)  # default starting position
 
         # Load the map from the provided strings
@@ -43,18 +45,13 @@ class GameMap:
                     wall = Static("wall", WALL, COLOR.INK, blocks=True)
                     floor = Static(
                         "floor", FLOOR, COLOR.LIGHT_TAUPE, blocks=False)
-                    if char == BLANK:
-                        self.tiles[x, y] = char
-                    elif char == WALL:
-                        self.tiles[x, y] = char
+                    if char == WALL:
                         self.create_reference(
                             object_data=wall, position=(x, y))
                     elif char == FLOOR:
-                        self.tiles[x, y] = char
                         self.create_reference(
                             object_data=floor, position=(x, y))
                     else:
-                        self.tiles[x, y] = FLOOR  # Entities on floor tiles
                         self.create_reference(
                             object_data=floor, position=(x, y))
 
@@ -62,12 +59,11 @@ class GameMap:
                     if char == PLAYER:
                         # This is the player starting position
                         self.player_start = (x, y)
-                    elif char == 'B':  # 酿造台
-                        self.create_reference(
-                            object_data=Activator("brewing_station", "Brewing Station", "B", COLOR.DARK_RED), position=(x, y))
-                    elif char == 'H':  # 草药
-                        self.create_reference(
-                            object_data=Item("silver_leaf", "Herb", "%", COLOR.DARK_GREEN), position=(x, y))
+                    elif char == '+':
+                        door = object_manager.get_object("door")
+                        if isinstance(door, Door):
+                            self.create_reference(
+                                object_data=door, position=(x, y))
 
     def get_reference_at(self, x: int, y: int):
         """获取指定位置的参照物"""
@@ -81,8 +77,12 @@ class GameMap:
         return 0 <= x < self.width and 0 <= y < self.height
 
     def is_blocked(self, x, y):
-        """Check if a tile is blocked (wall)"""
-        return self.tiles[x, y] == WALL
+        """Check if a tile is blocked"""
+        # Check tile blocking
+        tile = self.get_reference_at(x, y)
+        if tile and tile.object_data.blocks:
+            return True
+        return False
 
     def is_blocked_by_entity(self, x, y, entities):
         """Check if a position is blocked by an entity"""
@@ -91,7 +91,7 @@ class GameMap:
                 return True
         return False
 
-    def compute_fov(self, player_x, player_y, radius=8):
+    def compute_fov(self, player_x, player_y, radius=3):
         # Reset FOV
         self.fov.fill(False)
 
@@ -222,49 +222,35 @@ class GameMap:
 
         # Draw references (floor, walls, items, etc.)
         for ref in self.references:
+            char = getattr(ref.object_data, "char", None)
+            color = getattr(ref.object_data, "color", None)
+            if not char or not color:
+                continue
             if self.fov[ref.x, ref.y]:
                 text_surface = font.render(
-                    ref.object_data.char, True, ref.object_data.color)
+                    char, True, color)
                 map_bg.blit(
                     text_surface,
                     (ref.x * char_size[0], ref.y * char_size[1]),
                 )
             elif self.explored[ref.x, ref.y]:
-                # Dimmed color for explored but not in FOV
                 dimmed_color = (
-                    ref.object_data.color[0] // 2,
-                    ref.object_data.color[1] // 2,
-                    ref.object_data.color[2] // 2,
+                    min(color[0] + (255 - color[0]) // 2, 255),
+                    min(color[1] + (255 - color[1]) // 2, 255),
+                    min(color[2] + (255 - color[2]) // 2, 255),
                 )
                 text_surface = font.render(
-                    ref.object_data.char, True, dimmed_color)
+                    char, True, dimmed_color)
                 map_bg.blit(
                     text_surface,
                     (ref.x * char_size[0], ref.y * char_size[1]),
                 )
 
-        # # Draw tiles
-        # for x in range(self.width):
-        #     for y in range(self.height):
-        #         # Get the character and color for this tile
-        #         char = self.tiles[x, y]
-        #         color = COLOR.LIGHT_TAUPE if char == FLOOR else COLOR.INK
-
-        #         # Render the tile character
-        #         text_surface = font.render(char, True, color)
-        #         map_bg.blit(
-        #             text_surface,
-        #             (x * char_size[0], y * char_size[1]),
-        #         )
-
-        # # Third: Draw player (always on top)
-        # player_text = font.render(PLAYER, True, player.object_data.color)
-        # map_bg.blit(
-        #     player_text,
-        #     (
-        #         player.x * char_size[0],
-        #         player.y * char_size[1],
-        #     ),
-        # )
-
         surface.blit(map_bg, (map_x, map_y))
+
+    def reset_door(self):
+        for ref in self.references:
+            if ref.object_data.object_type == ObjectType.DOOR:
+                ref.object_data = cast('Door', ref.object_data)
+                ref.object_data.blocks = True
+                ref.object_data.char = ref.object_data.close_char

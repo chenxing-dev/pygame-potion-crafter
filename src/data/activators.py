@@ -1,29 +1,6 @@
-from entities import Activator
-
-
-class ActivatorRegistry:
-    """交互实体注册表"""
-
-    def __init__(self):
-        self._activators = {}
-
-    def register_activator(self, activator: Activator):
-        """注册交互实体"""
-        self._activators[activator.id] = activator
-
-    def get_activator(self, activator_id: str):
-        """获取交互实体"""
-        return self._activators.get(activator_id)
-
-    def get_all_activators(self):
-        """获取所有交互实体"""
-        return self._activators.copy()
-
-
-# 创建全局交互实体注册表
-activator_registry = ActivatorRegistry()
-
-# 定义酿造台的回调函数
+from config import COLOR
+from entities.activator import Activator
+from entities.door import Door
 
 
 def examine_brewing_station(_, game):
@@ -41,12 +18,15 @@ def clean_brewing_station(_, game):
     return "You need a cleaning solution to clear these pipes."
 
 
-activator_registry.register_activator(Activator(
-    "brewing_station",
-    "Brewing Station",
-    "A large station for brewing potions and extracts.",
-    {
-        "examine": examine_brewing_station,
-        "clean": clean_brewing_station
-    }
-))
+def create_activators(object_manager):
+    object_manager.add_object(Door(door_id="door", name="Door"))
+    object_manager.add_object(Activator(
+        "brewing_station",
+        "Brewing Station",
+        "B",
+        COLOR.DARK_RED,
+        {
+            "examine": examine_brewing_station,
+            "clean": clean_brewing_station
+        }
+    ))

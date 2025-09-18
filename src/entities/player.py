@@ -1,9 +1,9 @@
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, cast
 import config.colors as COLOR
 from config.symbols import PLAYER, PLAYER_NAME
+from entities.game_object import ObjectType
 from entities.mobile import Mobile
 from entities.npc import NPC
-from entities.door import Door
 from entities.item import Item
 from entities.reference import Reference
 
@@ -52,31 +52,35 @@ class MobilePlayer(Mobile):
         target = None
         for ref in game.world.references:
             if ref.x == new_x and ref.y == new_y:
-                target = ref
-                break
+                # Ignore floor and wall references
+                if ref.object_data.interactable:
+                    target = ref
+                    break
 
         if target:
+            print(f"Interacting with entity {target.id} at ({new_x}, {new_y})")
             if target.object_data.blocks:
-                if isinstance(target, Door):
+                print(f"Entity {target.id} blocks movement.")
+                if target.object_data.object_type == ObjectType.DOOR:
+                    print("Door interaction")
                     # Handle door interaction
                     message = target.activate(game)
-                    self.x, self.y = new_x, new_y
+                    super().move(dx, dy, game)
                     return {"moved": True, "message": message}
-                if isinstance(target, NPC):
+                if target.object_data.object_type == ObjectType.NPC:
                     return {"moved": False, "message": self.greet(target)}
             else:
-                if isinstance(target, Item):
-                    # Move player and sync reference position
-                    self.x, self.y = new_x, new_y
-                    self.reference.x, self.reference.y = new_x, new_y
-                    return {"moved": True, "message": self.pick_up(target, game.world.references)}
+                print(f"Entity {target.id} does not block movement.")
+                if target.object_data.object_type == ObjectType.ITEM:
+                    super().move(dx, dy, game)
+                    return {"moved": True, "message": self.pick_up(cast(Reference[Item], target), game.world.references)}
                 print(f"Moving onto non-blocking entity at ({new_x}, {new_y})")
-                self.x, self.y = new_x, new_y
-                self.reference.x, self.reference.y = new_x, new_y
+                super().move(dx, dy, game)
+                game.world.reset_door()
 
         # No target entity, just move
-        self.x, self.y = new_x, new_y
-        self.reference.x, self.reference.y = new_x, new_y
+        super().move(dx, dy, game)
+        game.world.reset_door()
         return {"moved": True}
 
     def pick_up(self, item_ref: 'Reference[Item]', references: List['Reference']):

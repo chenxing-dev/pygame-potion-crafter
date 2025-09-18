@@ -25,9 +25,11 @@ class Mobile:
             return
         new_x = self.x + dx
         new_y = self.y + dy
+
         if game.world.is_within_bounds(new_x, new_y):
-            self.x = new_x
-            self.y = new_y
+            # Move player and sync reference position
+            self.x, self.y = new_x, new_y
+            self.reference.x, self.reference.y = new_x, new_y
         else:
             print("移动超出边界")
 
