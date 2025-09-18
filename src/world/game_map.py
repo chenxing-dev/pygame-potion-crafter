@@ -1,7 +1,7 @@
 from typing import List, Tuple, TYPE_CHECKING, Union
 import numpy as np
 import pygame
-from config import COLOR, WALL, FLOOR, PLAYER, MAP_WIDTH, MAP_HEIGHT
+from config import COLOR, WALL, FLOOR, BLANK, PLAYER, MAP_WIDTH, MAP_HEIGHT
 from entities.reference import Reference
 from entities.activator import Activator
 from entities.static import Static
@@ -17,7 +17,7 @@ class GameMap:
     def __init__(self, map_strings: List[str]):
         self.width, self.height = MAP_WIDTH, MAP_HEIGHT
         self.tiles = np.full((self.width, self.height),
-                             fill_value=" ", dtype=str)
+                             fill_value=BLANK, dtype=str)
         self.fov = np.zeros((self.width, self.height), dtype=bool)
         self.explored = np.zeros((self.width, self.height), dtype=bool)
 
@@ -43,7 +43,7 @@ class GameMap:
                     wall = Static("wall", WALL, COLOR.INK, blocks=True)
                     floor = Static(
                         "floor", FLOOR, COLOR.LIGHT_TAUPE, blocks=False)
-                    if char == " ":
+                    if char == BLANK:
                         self.tiles[x, y] = char
                     elif char == WALL:
                         self.tiles[x, y] = char

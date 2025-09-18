@@ -1,6 +1,7 @@
 import pygame
-from config import COLOR, COLORED_WORDS
+from config import COLOR
 from config.settings import GRID_WIDTH, HEADER_HEIGHT, MAP_HEIGHT, MSG_WIDTH, MSG_HEIGHT
+from ui.text_renderer import render_colored_text
 
 
 class MessageLog:
@@ -11,29 +12,6 @@ class MessageLog:
         self.messages = []
         self.max_lines = MSG_HEIGHT * 3
         self.scroll_offset = 0
-
-    def render_colored_text(self, surface, text, position, default_color=COLOR.INK):
-        """Render text with colored keywords"""
-        x, y = position
-        words = text.split()
-
-        for word in words:
-            # Check if word needs special coloring
-            color = COLORED_WORDS.get(word, default_color)
-
-            if not color:
-                # Handle punctuation
-                clean_word = word.strip(".,!?;:")
-                color = COLORED_WORDS.get(clean_word, default_color)
-            # Render the word
-            word_surface = self.font.render(word, True, color)
-            word_width = word_surface.get_width()
-
-            # Draw the word
-            surface.blit(word_surface, (x, y))
-
-            # Move to next position
-            x += word_width + self.font.size(" ")[0]  # Add space width
 
     def add_message(self, message, color=COLOR.INK):
         """Add a message to the log with wrapping and coloring"""
@@ -131,8 +109,9 @@ class MessageLog:
 
         # Draw messages
         for i, (msg, color) in enumerate(self.messages[start_idx:end_idx]):
-            self.render_colored_text(
+            render_colored_text(
                 msg_bg,
+                self.font,
                 msg,
                 (0, i * self.char_height),
                 color,

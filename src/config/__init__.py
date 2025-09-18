@@ -13,6 +13,9 @@ __all__ = [
     "MAP_HEIGHT",
     "MSG_WIDTH",
     "MSG_HEIGHT",
+    "WALL",
+    "FLOOR",
+    "BLANK",
     "PLAYER",
     "PLAYER_NAME",
 ]

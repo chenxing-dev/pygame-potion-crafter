@@ -2,5 +2,6 @@
 WALL = "#"
 FLOOR = "."
 PLAYER = "@"
+BLANK = " "
 
 PLAYER_NAME = "Lina"

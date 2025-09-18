@@ -21,11 +21,11 @@ from config.settings import (
     INNER_PADDING,
     OUTER_PADDING,
 )
-from config import COLOR, WALL, FLOOR
+from config import COLOR
 from data.object_manager import object_manager
 from crafting import RecipeManager
 from entities import Door, MobilePlayer, NPC, Player, Reference, Item, Tool
-from ui import MessageLog, InteractionSystem
+from ui import MessageLog, InteractionSystem, get_char_size, render_character, render_colored_text
 from world import GameMap, MAP_DATA
 
 
@@ -53,14 +53,13 @@ class Game:
         # 字体与字符尺寸
         self.font = pygame.font.Font(
             "assets/fonts/FT88-Gothique.ttf", FONT_SIZE)
-        width, height = self.font.size(WALL + FLOOR)
-        self.char_size = (int(width / 2), height)
+        self.char_size = get_char_size(self.font)
 
         # 渲染用 surface 容器
         container_w = GRID_WIDTH * self.char_size[0]
         container_h = GRID_HEIGHT * self.char_size[1]
         self.surfaces = {}
-        self.surfaces["container"] = pygame.Surface(
+        self.surfaces["game_container"] = pygame.Surface(
             (container_w, container_h)).convert()
         pad_w, pad_h = container_w + 2 * INNER_PADDING, container_h + 2 * INNER_PADDING
         self.surfaces["padding_container"] = pygame.Surface(
@@ -89,6 +88,7 @@ class Game:
 
         # 2. Initialize the player at the starting position found in the map
         self.create_player(*self.world.player_start)
+        self.world.compute_fov(self.player.x, self.player.y)
 
         # 3. 初始化其他系统
         self.recipe_manager = RecipeManager()
@@ -163,14 +163,11 @@ class Game:
     def add_message(self, message, color=COLOR.INK):
         self.message_log.add_message(message, color)
 
-    def render_colored_text(self, surface, text, position, default_color=COLOR.INK):
-        self.message_log.render_colored_text(
-            surface, text, position, default_color)
-
     def render(self):
         """Render the game"""
+
         # Clear container
-        self.surfaces["container"].fill(COLOR.PARCHMENT)
+        self.surfaces["game_container"].fill(COLOR.PARCHMENT)
 
         if self.state == GameState.MAIN_MENU:
             self.render_main_menu()
@@ -183,44 +180,66 @@ class Game:
         elif self.state == GameState.JOURNAL:
             self.render_journal()
 
-        # Compose framed container and blit to the screen
-        self.draw_framed_container()
+        # Render framed container
+        self.render_framed_container()
+
         pygame.display.flip()
 
-    def draw_framed_container(self):
-        """Draw a framed container with padding"""
-        # Draw inner parchment area
+    def render_framed_container(self):
+        """Compose the framed container with padding and borders"""
+        # Draw outer container
         self.surfaces["padding_container"].fill(COLOR.PARCHMENT)
-        self.surfaces["padding_container"].blit(
-            self.surfaces["container"], (INNER_PADDING, INNER_PADDING))
-        # Fill frame
+
+        # Fill Screen
         self.screen.fill(COLOR.INK)
+
+        # Draw game container with margin on padding container
+        self.surfaces["padding_container"].blit(
+            self.surfaces["game_container"], (INNER_PADDING, INNER_PADDING))
         self.screen.blit(self.surfaces["padding_container"],
                          (OUTER_PADDING, OUTER_PADDING))
 
     def render_main_menu(self):
         """Render the main menu"""
-        # Draw container
         main_menu_x, main_menu_y = 0, 0
-        main_menu_bg = pygame.Surface(
-            (GRID_WIDTH * self.char_size[0],
-             GRID_HEIGHT * self.char_size[1]),
-            pygame.SRCALPHA,
-        )
+        cw, ch = GRID_WIDTH * \
+            self.char_size[0], GRID_HEIGHT * self.char_size[1]
+
+        # Create background surface
+        bg = pygame.Surface((cw, ch), pygame.SRCALPHA)
+
+        # Draw vignetting effect
+        max_dist = math.sqrt((GRID_WIDTH / 2) **
+                             2 + (GRID_HEIGHT / 2) ** 2)
+        for ry in range(GRID_HEIGHT):
+            for rx in range(GRID_WIDTH):
+                # Calculate distance from center
+                dist_x = abs(rx - GRID_WIDTH / 2)
+                dist_y = abs(ry - GRID_HEIGHT / 2)
+                dist = math.sqrt(dist_x ** 2 + dist_y ** 2)
+
+                # Calculate alpha based on distance
+                alpha = 255 * dist / max_dist
+                alpha = max(0, min(255, int(alpha)))
+                render_character(
+                    bg, self.font, "W", (rx * self.char_size[0], ry * self.char_size[1]), background=COLOR.INK, alpha=alpha)
+
         # Display game title and instructions
-        self.render_colored_text(
-            main_menu_bg, GAME_TITLE, (0, 0))
-        self.render_colored_text(
-            main_menu_bg, "Press ENTER to begin", (0, self.char_size[1]))
-        self.surfaces["container"].blit(
-            main_menu_bg, (main_menu_x, main_menu_y))
+        render_colored_text(
+            bg, self.font, GAME_TITLE, (0, 0))
+        render_colored_text(
+            bg, self.font, "Press ENTER to begin", (0, self.char_size[1]))
+        self.surfaces["game_container"].blit(
+            bg, (main_menu_x, main_menu_y))
+
+        self.surfaces["game_container"].blit(bg, (main_menu_x, main_menu_y))
 
     def render_playing(self):
         """Render the playing state"""
         # Render game world
         if self.world and self.player:
             self.world.render(
-                self.surfaces["container"],
+                self.surfaces["game_container"],
                 self.char_size,
                 self.font
             )
@@ -247,7 +266,7 @@ class Game:
         """Render the UI panel for the playing state"""
         self.render_header()
         self.render_status_panel()
-        self.message_log.render(self.surfaces["container"])
+        self.message_log.render(self.surfaces["game_container"])
         self.render_action_menu()
 
     def render_header(self):
@@ -260,10 +279,10 @@ class Game:
             pygame.SRCALPHA,
         )
         # Display game title and current day
-        self.render_colored_text(
-            header_bg, f"{GAME_TITLE} - Day {self.world_state['day']}", (0, 0))
+        render_colored_text(
+            header_bg, self.font, f"{GAME_TITLE} - Day {self.world_state['day']}", (0, 0))
 
-        self.surfaces["container"].blit(header_bg, (header_x, header_y))
+        self.surfaces["game_container"].blit(header_bg, (header_x, header_y))
 
     def render_status_panel(self):
         """Render the status panel"""
@@ -291,18 +310,19 @@ class Game:
         # Draw stats with colored keywords
         for stat in status:
             if isinstance(stat, Tuple):
-                self.render_colored_text(
+                render_colored_text(
                     ui_bg,
+                    self.font,
                     stat[0],
                     (self.char_size[0], status_y),
                     stat[1],
                 )
             else:
-                self.render_colored_text(
-                    ui_bg, stat, (self.char_size[0], status_y))
+                render_colored_text(
+                    ui_bg, self.font, stat, (self.char_size[0], status_y))
             status_y += self.char_size[1]
 
-        self.surfaces["container"].blit(ui_bg, (ui_x, ui_y))
+        self.surfaces["game_container"].blit(ui_bg, (ui_x, ui_y))
 
     def get_available_actions(self):
         """Determine available actions based on context"""
@@ -344,25 +364,25 @@ class Game:
             text = action[1]
 
             # 绘制首字母（深绿色）
-            self.render_colored_text(
-                menu_bg, key, (current_x, 0), COLOR.SADDLE_BROWN
+            render_colored_text(
+                menu_bg, self.font, key, (current_x, 0), COLOR.SADDLE_BROWN
             )
             current_x += len(key) * self.char_size[0]
 
             # 绘制剩余文本（浅灰褐色）
-            self.render_colored_text(
-                menu_bg, text, (current_x, 0), COLOR.LIGHT_TAUPE
-            )
+            render_colored_text(menu_bg, self.font, text,
+                                (current_x, 0), COLOR.LIGHT_TAUPE)
             current_x += (len(text) + 1) * self.char_size[0]
 
             # 如果不是最后一个动作，添加分隔符
             if i < len(actions) - 1:
-                self.render_colored_text(
-                    menu_bg, separator, (current_x, 0), COLOR.LIGHT_TAUPE
+                render_colored_text(
+                    menu_bg, self.font, separator, (current_x,
+                                                    0), COLOR.LIGHT_TAUPE
                 )
             current_x += (len(separator) + 1) * self.char_size[0]
 
-        self.surfaces["container"].blit(menu_bg, (menu_x, menu_y))
+        self.surfaces["game_container"].blit(menu_bg, (menu_x, menu_y))
 
     def handle_events(self):
         """Handle user input events"""
