@@ -1,6 +1,7 @@
 # 游戏设置
 GAME_TITLE = "Apprentice Log: Workshop Restoration"
 GAME_DESCRIPTION = "A cozy crafting game about restoring an alchemist's workshop."
+CURRENT_VERSION = "1.0"
 
 # 屏幕和网格尺寸
 SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720

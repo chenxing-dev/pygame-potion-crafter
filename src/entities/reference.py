@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional, Union, TypeVar, Generic
+from core import Serializable
 from entities.activator import Activator
 from entities.door import Door
 
@@ -12,15 +13,15 @@ if TYPE_CHECKING:
     from game import Game
 
 
-T_co = TypeVar('T_co', bound=Union['PhysicalObject',
-                                   'Door', 'Activator', 'NPC', 'Player'], covariant=True)
+T_co = TypeVar('T_co', bound='PhysicalObject', covariant=True)
 
 
 @dataclass
-class Reference(Generic[T_co]):
+class Reference(Generic[T_co], Serializable):
     """地图上的实体引用，有位置信息和外观"""
 
     def __init__(self, x: int, y: int, object_data: T_co):
+        super().__init__()
         self.id = f"{object_data.id}_{x}_{y}"
         self.x = x
         self.y = y

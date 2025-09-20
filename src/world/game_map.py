@@ -254,3 +254,22 @@ class GameMap:
                 ref.object_data = cast('Door', ref.object_data)
                 ref.object_data.blocks = True
                 ref.object_data.char = ref.object_data.close_char
+
+    def to_dict(self) -> dict:
+        return {
+            "explored": self.explored.tolist(),
+            "references": [
+                {
+                    "x": ref.x,
+                    "y": ref.y,
+                    "object_data": {
+                        "name": ref.object_data.name,
+                        "char": ref.object_data.char,
+                        "color": ref.object_data.color,
+                        "blocks": ref.object_data.blocks,
+                        "object_type": ref.object_data.object_type.name,
+                    },
+                }
+                for ref in self.references
+            ]
+        }

@@ -18,4 +18,5 @@ __all__ = [
     "BLANK",
     "PLAYER",
     "PLAYER_NAME",
+    "CURRENT_VERSION",
 ]

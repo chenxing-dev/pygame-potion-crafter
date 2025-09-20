@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
+from core import Serializable
 
 
 class ObjectType(Enum):
@@ -13,7 +14,7 @@ class ObjectType(Enum):
 
 
 @dataclass
-class GameObject:
+class GameObject(Serializable):
     """所有游戏对象的基类"""
     id: str
     object_type: ObjectType

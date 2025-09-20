@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+from core import Serializable
 
 
 if TYPE_CHECKING:
@@ -8,10 +9,11 @@ if TYPE_CHECKING:
     from game import Game
 
 
-class Mobile:
+class Mobile(Serializable):
     """可移动的实体，有位置信息且可以移动"""
 
     def __init__(self, x: int, y: int, reference: 'Reference[NPC|Player]'):
+        super().__init__()
         self.x = x
         self.y = y
         self.reference = reference

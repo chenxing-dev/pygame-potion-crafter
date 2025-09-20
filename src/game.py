@@ -1,6 +1,6 @@
 """主游戏循环与状态管理"""
 from enum import Enum, auto
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any
 import math
 import pygame
 
@@ -19,7 +19,7 @@ from config.settings import (
     UI_WIDTH,
     UI_HEIGHT,
     INNER_PADDING,
-    OUTER_PADDING,
+    OUTER_PADDING
 )
 from config import COLOR
 from data.object_manager import object_manager
@@ -73,7 +73,7 @@ class Game:
         self.player: Optional[Reference[Player]] = None
         self.mobile_player: Optional[MobilePlayer] = None
         self.world: Optional[GameMap] = None
-        self.world_state: dict = {"day": 1, "tasks": []}
+        self.world_state: dict = {"day": 1, "tasks": [], "progress": 0}
         self.recipe_manager = None
         self.journal = None
         self.message_log = MessageLog(font=self.font, char_size=self.char_size)
@@ -98,7 +98,6 @@ class Game:
         # 3. 初始化其他系统
         self.recipe_manager = RecipeManager()
         self.interaction_system = InteractionSystem(self)
-        self.world_state["tasks"] = ["Harvest Silver Leaf (3/5)"]  # TODO: 临时任务
 
         # 4. Add starting messages
         self.add_message(
@@ -187,6 +186,7 @@ class Game:
 
     def render_main_menu(self):
         """Render the main menu"""
+        # TODO: Design a better main menu
         main_menu_x, main_menu_y = 0, 0
         cw, ch = GRID_WIDTH * \
             self.char_size[0], GRID_HEIGHT * self.char_size[1]
@@ -287,7 +287,7 @@ class Game:
             (self.mobile_player.location, COLOR.DARK_GREEN),
             "",
             "Task:",
-            (self.world_state["tasks"][0], COLOR.DARK_GREEN),
+            (self.get_current_task(), COLOR.DARK_GREEN),
             "",
             "Inventory:",
             *self.player.object_data.get_inventory_display(),
@@ -309,6 +309,12 @@ class Game:
             status_y += self.char_size[1]
 
         self.surfaces["game_container"].blit(ui_bg, (ui_x, ui_y))
+
+    def get_current_task(self) -> str:
+        """Get the current task from world state"""
+        if self.world_state["tasks"]:
+            return self.world_state["tasks"][0]
+        return "No current task"
 
     def get_available_actions(self):
         """Determine available actions based on context"""
@@ -606,3 +612,12 @@ class Game:
             self.clock.tick(60)
 
         pygame.quit()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "world": self.world.to_dict() if self.world else None,
+            "mobile_player": self.mobile_player.to_dict() if self.mobile_player else None,
+            "world_state": self.world_state,
+            # The message log does not have a to_dict method, so we save the raw messages
+            "message_log": self.message_log.messages if self.message_log else [],
+        }
