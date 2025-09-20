@@ -17,12 +17,12 @@ T_co = TypeVar('T_co', bound='PhysicalObject', covariant=True)
 
 
 @dataclass
-class Reference(Generic[T_co], Serializable):
-    """地图上的实体引用，有位置信息和外观"""
+class Reference(Serializable, Generic[T_co]):
+    """Reference to a game object, such as Player, NPC, Item, or Door."""
 
-    def __init__(self, x: int, y: int, object_data: T_co):
+    def __init__(self, obj_id: str, x: int, y: int, object_data: T_co):
         super().__init__()
-        self.id = f"{object_data.id}_{x}_{y}"
+        self.id = obj_id
         self.x = x
         self.y = y
         self.object_data = object_data  # 关联的实体对象，如Player
@@ -33,6 +33,8 @@ class Reference(Generic[T_co], Serializable):
         self.key_id = None  # 默认没有钥匙ID
         self.destination_map: Optional[str] = None
         self.destination_pos: Optional[tuple] = None
+
+        self._serializable_exclude.add('object_data')  # 避免递归序列化
 
     def __str__(self):
         return self.id
@@ -56,3 +58,9 @@ class Reference(Generic[T_co], Serializable):
                 if not action_name:
                     action_name = actions[0]  # 默认执行第一个动作
                 return self.object_data.actions[action_name](game)
+
+    def to_dict(self) -> dict:
+        data = super().to_dict()
+        # Serialize the associated object_data by its ID
+        data['object_data'] = self.object_data.id
+        return data

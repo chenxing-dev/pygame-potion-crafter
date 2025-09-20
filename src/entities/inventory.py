@@ -1,14 +1,18 @@
 from typing import Dict, List
+from core import Serializable
 from entities.item import Item
 from data.object_manager import object_manager
 
 
-class Inventory:
+class Inventory(Serializable):
     """库存系统"""
 
     def __init__(self) -> None:
+        super().__init__()
         self.object_manager = object_manager
         self.items: Dict[str, int] = {}  # item_id -> quantity
+
+        self._serializable_exclude.add('object_manager')
 
     def add_item(self, item_id: str, quantity: int = 1) -> int:
         """添加物品到库存"""

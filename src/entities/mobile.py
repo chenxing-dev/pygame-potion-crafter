@@ -20,6 +20,8 @@ class Mobile(Serializable):
 
         self.hp = self.reference.object_data.max_hp or 10
 
+        self._serializable_exclude.add('reference')  # 避免递归序列化
+
     def move(self, dx: int, dy: int, game: 'Game'):
         """移动实体"""
         if game.world is None:
@@ -38,3 +40,9 @@ class Mobile(Serializable):
     def greet(self, target: 'Reference') -> str | None:
         """Greet another actor and return result message"""
         return f"{self.reference.object_data.name} greets {target.object_data.name}!"
+
+    def to_dict(self) -> dict:
+        data = super().to_dict()
+        # Avoid deep recursion by only storing reference ID
+        data['reference'] = self.reference.id
+        return data

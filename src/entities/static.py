@@ -12,3 +12,6 @@ class Static(PhysicalObject):
 
     def __str__(self):
         return self.id
+
+    def to_dict(self) -> dict:
+        return super().to_dict()

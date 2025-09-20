@@ -12,12 +12,18 @@ class ObjectType(Enum):
     DOOR = auto()           # 门
     STATIC = auto()         # 静态物体（墙壁、地板等）
 
+    def to_dict(self):
+        return self.name
+
 
 @dataclass
 class GameObject(Serializable):
     """所有游戏对象的基类"""
-    id: str
-    object_type: ObjectType
+
+    def __init__(self, obj_id: str, object_type: ObjectType):
+        super().__init__()
+        self.id = obj_id
+        self.object_type = object_type
 
     def __str__(self):
         return self.id

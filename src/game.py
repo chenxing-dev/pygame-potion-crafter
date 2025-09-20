@@ -28,6 +28,7 @@ from crafting import RecipeManager
 from entities import MobilePlayer, NPC, Player, Reference
 from ui import MessageLog, InteractionSystem, get_char_size, render_character, render_colored_text
 from world import GameMap, MAP_DATA
+from core import SaveLoadSystem
 
 
 class GameState(Enum):
@@ -78,6 +79,7 @@ class Game:
         self.journal = None
         self.message_log = MessageLog(font=self.font, char_size=self.char_size)
         self.interaction_system: Optional[InteractionSystem] = None
+        self.save_system = None
 
         # Sample map
         self.map_data = str(MAP_DATA.strip()).splitlines()
@@ -92,6 +94,11 @@ class Game:
 
         # 2. Initialize the player at the starting position found in the map
         self.create_player(*self.world.player_start)
+
+        # Initialize save system after player and world are set
+        self.save_system = SaveLoadSystem(self)
+
+        # 计算初始视野
         if self.player and self.world:
             self.world.compute_fov(self.player.x, self.player.y)
 
@@ -115,12 +122,19 @@ class Game:
         self.add_item("moon_dew", 5)
         self.add_item("glowing_moss", 3)
 
-    def create_reference(self, entity, x: int, y: int) -> Reference:
+    def create_reference(self, obj: 'PhysicalObject', x: int, y: int) -> Reference:
         """创建实体引用"""
         if self.world is None:
             raise ValueError(
                 "World must be initialized before creating references.")
-        reference = Reference(x, y, entity)
+        if not obj:
+            raise ValueError(
+                "Object data must be provided to create a reference.")
+
+        # Player is a special case
+        obj_id = f"{obj.id}_{x}_{y}" if obj.id != "player" else "player"
+
+        reference = Reference(obj_id, x, y, object_data=obj)
         self.world.references.append(reference)
         return reference
 
@@ -412,6 +426,11 @@ class Game:
         """Handle events during the main gameplay state"""
         if event.type != pygame.KEYDOWN:
             return self.running
+
+        if event.key == pygame.K_F5:
+            if self.save_system:
+                self.save_system.save_game(slot=1)
+            return
 
         # 检查消息日志滚动
         if self.message_log.handle_input(event.key):

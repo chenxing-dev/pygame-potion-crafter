@@ -18,6 +18,7 @@ class SaveLoadSystem:
         self.save_slots = 3  # 默认保存槽数量
         self.current_slot = 1  # 当前使用的保存槽
         self.save_file = "save_slot_1.json"  # 默认保存文件名
+        print("SaveLoadSystem initialized.")
 
     def save_game(self, slot: int) -> bool:
         """将游戏状态保存到slot指定的文件中"""

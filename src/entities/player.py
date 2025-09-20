@@ -25,10 +25,7 @@ class MobilePlayer(Mobile):
     def __init__(self, x: int, y: int, reference: 'Reference[Player]'):
         super().__init__(x, y, reference)
         self.object_data: Player = reference.object_data  # 关联的实体对象，如Player
-        self.skills = {
-            "Alchemy": 2,
-            "Herbalism": 1,
-        }
+        self.skills = {}
         self.equipped_tool = None
         self.location = "Herb Garden"
 
@@ -89,3 +86,11 @@ class MobilePlayer(Mobile):
             item_id=item_ref.object_data.id)
         references.remove(item_ref)
         return f"Picked up {item_ref.object_data.name}"
+
+    def to_dict(self) -> dict:
+        data = super().to_dict()
+
+        # Avoid serializing the entire reference to prevent recursion
+        data['reference'] = self.reference.id
+
+        return data

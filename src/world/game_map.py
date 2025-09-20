@@ -31,7 +31,7 @@ class GameMap:
 
     def create_reference(self, object_data: 'Union[PhysicalObject, Item, Activator, Static, Player, NPC]', position: Tuple[int, int]):
         """创建Reference并添加到地图"""
-        reference = Reference(*position, object_data=object_data)
+        reference = Reference(object_data.id, *position, object_data=object_data)
         self.references.append(reference)
         return reference
 
@@ -256,20 +256,10 @@ class GameMap:
                 ref.object_data.char = ref.object_data.close_char
 
     def to_dict(self) -> dict:
+        print("Serializing GameMap")
         return {
             "explored": self.explored.tolist(),
             "references": [
-                {
-                    "x": ref.x,
-                    "y": ref.y,
-                    "object_data": {
-                        "name": ref.object_data.name,
-                        "char": ref.object_data.char,
-                        "color": ref.object_data.color,
-                        "blocks": ref.object_data.blocks,
-                        "object_type": ref.object_data.object_type.name,
-                    },
-                }
-                for ref in self.references
+                ref.to_dict() for ref in self.references
             ]
         }
